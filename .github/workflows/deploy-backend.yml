@@ -29,7 +29,7 @@ jobs:
           
           # 1. Clone your empty Hugging Face Space to a temporary folder
           # Make sure to replace muahmad123/research-ai if your space name is different
-          git clone https://huggingface.co/spaces/muahmad123/research-ai
+          git clone https://muahmad123:${HF_TOKEN}@huggingface.co/spaces/muahmad123/research-ai /tmp/hf_space
           
           # 2. Navigate into the cloned HF space
           cd /tmp/hf_space
