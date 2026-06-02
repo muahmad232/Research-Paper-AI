@@ -74,7 +74,7 @@ def run_score_tool(profile_id: str) -> Dict[str, Any]:
         db.table("papers")
         .select("id, title, abstract, categories, published_at, embedding")
         .not_.is_("embedding", "null")
-        .gte("fetched_at", "now() - interval '2 days'")
+        .gte("fetched_at", (date.today() - __import__('datetime').timedelta(days=2)).isoformat())
         .limit(300)
         .execute()
     )

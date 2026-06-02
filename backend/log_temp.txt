@@ -1,0 +1,9 @@
+[
+  {
+    "status": "failed",
+    "errors": [
+      "{'code': '22007', 'details': None, 'hint': None, 'message': 'invalid input syntax for type timestamp with time zone: \"now() - interval \\'2 days\\'\"'}"
+    ],
+    "log": "[Profile] Using profile 3041e8c2-04eb-4e5b-a88a-03bbf85bfaa5\n[Fetch] {'total_fetched': 125, 'arxiv_count': 100, 'semantic_scholar_count': 25, 'inserted': 124, 'skipped': 1}\n[Embed] {'processed': 124}\nFATAL: {'code': '22007', 'details': None, 'hint': None, 'message': 'invalid input syntax for type timestamp with time zone: \"now() - interval \\'2 days\\'\"'}"
+  }
+]

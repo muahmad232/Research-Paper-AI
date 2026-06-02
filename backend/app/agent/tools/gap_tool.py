@@ -32,7 +32,7 @@ def run_gap_tool(profile_id: str) -> Dict[str, Any]:
         .select("paper_id, analysis")
         .eq("profile_id", profile_id)
         .eq("category", "highly_relevant")
-        .gte("created_at", "now() - interval '7 days'")
+        .gte("created_at", (__import__('datetime').date.today() - __import__('datetime').timedelta(days=7)).isoformat())
         .limit(30)
         .execute()
     )
