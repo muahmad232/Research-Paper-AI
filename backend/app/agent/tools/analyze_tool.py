@@ -1,5 +1,6 @@
 """
-Paper Analysis Tool — uses Groq LLM to extract structured insights from abstracts
+Paper Analysis Tool — uses Groq LLM to extract structured insights from abstracts.
+Only analyzes highly_relevant papers that have not yet been analyzed.
 """
 import json
 import logging
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 def _get_llm():
     return ChatGroq(
         api_key=settings.groq_api_key,
-        model_name="llama3-8b-8192",
+        model_name="llama-3.1-8b-instant",
         temperature=0.1,
         max_tokens=1024,
     )
@@ -25,23 +26,25 @@ def _get_llm():
 def run_analyze_tool(profile_id: str) -> Dict[str, Any]:
     """
     Run LLM analysis on all 'highly_relevant' papers that haven't been analyzed yet.
-    Stores structured JSON analysis in the recommendations table.
+    FIX: Filters at DB level for null analysis, not empty dict (which is always truthy).
     """
     db = get_db()
     llm = _get_llm()
 
-    # Get highly relevant papers without analysis
+    # FIX: Filter at DB level — analysis IS NULL means not yet analyzed.
+    # The schema was changed so analysis defaults to NULL instead of '{}'.
     recs_resp = (
         db.table("recommendations")
         .select("id, paper_id, analysis")
         .eq("profile_id", profile_id)
         .eq("category", "highly_relevant")
+        .is_("analysis", "null")
         .execute()
     )
-    recs = [r for r in (recs_resp.data or []) if not r.get("analysis")]
+    recs = recs_resp.data or []
 
     if not recs:
-        logger.info("[AnalyzeTool] No papers to analyze.")
+        logger.info(f"[AnalyzeTool] No papers to analyze for profile {profile_id}.")
         return {"analyzed": 0}
 
     analyzed = 0
@@ -61,7 +64,7 @@ def run_analyze_tool(profile_id: str) -> Dict[str, Any]:
 
         prompt = PAPER_ANALYSIS_PROMPT.format(
             title=paper["title"],
-            abstract=paper["abstract"][:3000],  # Trim to avoid context limit
+            abstract=paper["abstract"][:3000],
         )
 
         try:

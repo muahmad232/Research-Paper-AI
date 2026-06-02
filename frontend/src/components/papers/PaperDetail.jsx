@@ -1,7 +1,13 @@
-import { X, ExternalLink, BookOpen, Cpu, Database, BarChart3, AlertCircle, ArrowRight } from 'lucide-react'
+import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { X, ExternalLink, BookOpen, Cpu, Database, BarChart3, AlertCircle, ArrowRight, Loader2, Sparkles } from 'lucide-react'
 import { ScoreBar } from './ScoreBar'
+import { papersApi } from '../../api'
+import toast from 'react-hot-toast'
 
 export default function PaperDetail({ rec, onClose }) {
+  const queryClient = useQueryClient()
+
   if (!rec) return null
   const paper = rec.papers || rec
   const analysis = rec.analysis || {}
@@ -15,6 +21,22 @@ export default function PaperDetail({ rec, onClose }) {
     { key: 'limitations', icon: AlertCircle, label: 'Limitations', color: 'text-rose-400' },
     { key: 'future_work', icon: ArrowRight, label: 'Future Work', color: 'text-brand-400' },
   ]
+
+  const { mutate: analyzePaper, isPending } = useMutation({
+    mutationFn: () => papersApi.analyze(paper.id),
+    onSuccess: (res) => {
+      toast.success('AI analysis generated!', { style: { background: '#1e1e35', color: '#fff' } })
+      queryClient.invalidateQueries({ queryKey: ['papers'] })
+      // Local state update trick since we receive `rec` as a prop and don't re-render easily:
+      // In a real app we might want to re-fetch the single paper, but invalidating queries
+      // will update the parent component's data and re-pass `rec` eventually.
+      // We can also just update the local rec object for instant feedback:
+      if (res?.analysis) {
+        rec.analysis = res.analysis
+      }
+    },
+    onError: (err) => toast.error(err.message),
+  })
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
@@ -108,10 +130,22 @@ export default function PaperDetail({ rec, onClose }) {
           )}
 
           {!Object.keys(analysis).length && (
-            <div className="glass rounded-xl p-4 text-center">
-              <p className="text-xs text-gray-500">
-                AI analysis not yet generated. Run the agent to analyze this paper.
+            <div className="glass rounded-xl p-6 text-center space-y-4">
+              <p className="text-sm text-gray-400">
+                AI analysis has not been generated for this paper yet.
               </p>
+              <button
+                onClick={() => analyzePaper()}
+                disabled={isPending}
+                className="btn-primary mx-auto"
+              >
+                {isPending ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+                {isPending ? 'Analyzing Paper...' : 'Generate AI Analysis'}
+              </button>
             </div>
           )}
         </div>

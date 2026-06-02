@@ -1,13 +1,11 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard,
-  FileText,
-  Lightbulb,
-  AlertTriangle,
-  Settings,
-  Bot,
-  Sparkles,
+  LayoutDashboard, FileText, Lightbulb, AlertTriangle,
+  Settings, Bot, LogOut, User,
 } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
+import { useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -18,6 +16,20 @@ const navItems = [
 ]
 
 export default function Sidebar() {
+  const { user, logout } = useAuthStore()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    queryClient.clear()
+    navigate('/login')
+    toast('Signed out', {
+      icon: '👋',
+      style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(255,255,255,0.08)' },
+    })
+  }
+
   return (
     <aside className="w-64 shrink-0 h-screen sticky top-0 flex flex-col glass border-r border-white/5">
       {/* Logo */}
@@ -50,16 +62,25 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* AI Badge */}
-      <div className="p-4">
-        <div className="glass rounded-xl p-3 border border-brand-500/20">
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles size={14} className="text-brand-400" />
-            <span className="text-xs font-semibold text-brand-300">Powered by AI</span>
+      {/* User section */}
+      <div className="p-4 border-t border-white/5">
+        <div className="glass rounded-xl p-3">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-brand-600/30 border border-brand-500/30 flex items-center justify-center shrink-0">
+              <User size={14} className="text-brand-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-white truncate">{user?.name || 'Researcher'}</p>
+              <p className="text-[10px] text-gray-500 truncate">{user?.email || ''}</p>
+            </div>
           </div>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            Groq Llama3 + Sentence Transformers + LangChain
-          </p>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all"
+          >
+            <LogOut size={13} />
+            Sign Out
+          </button>
         </div>
       </div>
     </aside>

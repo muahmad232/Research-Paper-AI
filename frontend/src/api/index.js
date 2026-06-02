@@ -1,14 +1,20 @@
 import { api } from './client'
 
+export const authApi = {
+  register: (data) => api.post('/auth/register', data),
+  login: (data) => api.post('/auth/login', data),
+  me: () => api.get('/auth/me'),
+}
+
 export const papersApi = {
   list: (params = {}) => api.get('/papers', { params }),
   getById: (id) => api.get(`/papers/${id}`),
+  analyze: (id) => api.post(`/papers/${id}/analyze`),
 }
 
 export const profileApi = {
   get: () => api.get('/profile'),
-  create: (data) => api.post('/profile', data),
-  update: (data) => api.put('/profile', data),
+  upsert: (data) => api.put('/profile', data),
 }
 
 export const gapsApi = {

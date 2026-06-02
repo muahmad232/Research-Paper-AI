@@ -8,9 +8,10 @@ import { LoadingSkeleton, EmptyState } from '../components/common'
 import { papersApi } from '../api'
 
 const CATEGORIES = [
-  { value: '', label: 'All Papers' },
+  { value: 'all', label: 'All Papers' },
   { value: 'highly_relevant', label: '✦ Highly Relevant' },
   { value: 'potentially_relevant', label: '◈ Potentially Relevant' },
+  { value: 'not_relevant', label: '✗ Not Relevant' },
 ]
 
 const SOURCES = [
@@ -22,7 +23,7 @@ const SOURCES = [
 export default function Papers() {
   const [selectedPaper, setSelectedPaper] = useState(null)
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState('')
+  const [category, setCategory] = useState('all')
   const [source, setSource] = useState('')
 
   const { data, isLoading } = useQuery({

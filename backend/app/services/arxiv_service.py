@@ -44,7 +44,7 @@ def fetch_arxiv_papers(
         for result in client.results(search):
             pub_date = result.published.date()
             if pub_date < cutoff:
-                break  # Results are sorted by date, so we can stop
+                continue  # FIX: was `break` — arXiv results aren't always perfectly date-sorted
 
             arxiv_id = result.entry_id.split("/")[-1]
             if arxiv_id in seen_ids:

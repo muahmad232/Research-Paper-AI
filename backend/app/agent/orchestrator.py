@@ -1,9 +1,9 @@
 """
-Agent Orchestrator — Runs the complete daily pipeline sequentially.
-This is the main entry point called by POST /run-daily-agent
+Agent Orchestrator — Runs the complete daily pipeline for ALL active user profiles.
+Called by POST /agent/run
 """
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Any, Dict
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
@@ -21,13 +21,20 @@ from app.agent.prompts import DAILY_DIGEST_PROMPT
 logger = logging.getLogger(__name__)
 
 
+def _now_iso() -> str:
+    """Return current UTC time as ISO string — safe for Supabase TIMESTAMPTZ columns."""
+    return datetime.now(timezone.utc).isoformat()
+
+
 async def run_daily_agent() -> Dict[str, Any]:
     """
-    Execute the full daily agent pipeline:
-    1. Fetch papers
-    2. Generate embeddings
-    3. Score & classify
-    4. LLM analysis (highly relevant only)
+    Execute the full daily agent pipeline for every user profile in the DB.
+
+    Steps per profile:
+    1. Fetch papers (shared across all users)
+    2. Generate embeddings (shared)
+    3. Score & classify per profile
+    4. LLM analysis on highly relevant
     5. Research gap detection
     6. Escalation summary
     7. Generate daily digest
@@ -43,24 +50,18 @@ async def run_daily_agent() -> Dict[str, Any]:
         msg = f"[{step}] {result}"
         logger.info(msg)
         run_log.append(msg)
+        try:
+            db.table("agent_runs").update({
+                "log": "\n".join(run_log[-10:]), # Keep last 10 lines for UI to parse easily
+            }).eq("id", run_id).execute()
+        except Exception:
+            pass
+
+    total_fetch = {}
+    total_embed = {}
 
     try:
-        # ── Step 1: Get or create profile ──────────────────────────────
-        profile_resp = db.table("user_profiles").select("id").limit(1).execute()
-        if not profile_resp.data:
-            # Create default profile
-            new_profile = db.table("user_profiles").insert({
-                "research_interests": ["LLM Agents", "RAG", "Healthcare AI"],
-                "keywords": ["RAG", "multi-agent", "hallucination", "transformer"],
-                "excluded_topics": ["computer vision", "robotics"],
-            }).execute()
-            profile_id = new_profile.data[0]["id"]
-        else:
-            profile_id = profile_resp.data[0]["id"]
-
-        log_step("Profile", f"Using profile {profile_id}")
-
-        # ── Step 2: Fetch papers ────────────────────────────────────────
+        # ── Step 1: Fetch papers (once, shared across all users) ──────────
         query_terms = settings.arxiv_query_terms.split(",")
         categories = settings.arxiv_categories.split(",")
 
@@ -70,109 +71,124 @@ async def run_daily_agent() -> Dict[str, Any]:
             max_papers=settings.max_papers_per_run,
         )
         log_step("Fetch", fetch_result)
+        total_fetch = fetch_result
 
-        # ── Step 3: Generate embeddings ─────────────────────────────────
+        # ── Step 2: Generate embeddings (once, shared) ────────────────────
         embed_result = run_embed_tool()
         log_step("Embed", embed_result)
+        total_embed = embed_result
 
-        # ── Step 4: Score & classify ────────────────────────────────────
-        score_result = run_score_tool(profile_id)
-        log_step("Score", score_result)
+        # ── Step 3–7: Run per-user profile ────────────────────────────────
+        profiles_resp = db.table("user_profiles").select("id, user_id, research_interests, keywords, excluded_topics").execute()
+        profiles = profiles_resp.data or []
 
-        # ── Step 5: LLM Analysis ────────────────────────────────────────
-        analyze_result = run_analyze_tool(profile_id)
-        log_step("Analyze", analyze_result)
+        if not profiles:
+            log_step("Profiles", "No user profiles found — skipping scoring.")
+        else:
+            log_step("Profiles", f"Processing {len(profiles)} profile(s)")
 
-        # ── Step 6: Research Gap Detection ─────────────────────────────
-        gap_result = run_gap_tool(profile_id)
-        log_step("Gaps", gap_result)
+        all_score_results = []
 
-        # ── Step 7: Escalation summary ──────────────────────────────────
-        escalation_result = run_escalation_tool(profile_id)
-        log_step("Escalation", escalation_result)
+        for profile in profiles:
+            profile_id = profile["id"]
+            log_step(f"Profile:{profile_id[:8]}", "Starting per-user pipeline")
 
-        # ── Step 8: Daily Digest ────────────────────────────────────────
-        # Get top papers for digest
-        top_recs_resp = (
-            db.table("recommendations")
-            .select("paper_id, final_score")
-            .eq("profile_id", profile_id)
-            .eq("category", "highly_relevant")
-            .order("final_score", desc=True)
-            .limit(5)
-            .execute()
-        )
-        top_paper_ids = [r["paper_id"] for r in (top_recs_resp.data or [])]
+            # Score & classify
+            score_result = run_score_tool(profile_id)
+            log_step(f"Score:{profile_id[:8]}", score_result)
+            all_score_results.append(score_result)
 
-        # Fetch top paper titles
-        top_titles = ""
-        if top_paper_ids:
-            papers_resp = db.table("papers").select("title").in_("id", top_paper_ids).execute()
-            top_titles = "\n".join([f"- {p['title']}" for p in (papers_resp.data or [])])
+            # LLM analysis
+            analyze_result = run_analyze_tool(profile_id)
+            log_step(f"Analyze:{profile_id[:8]}", analyze_result)
 
-        # Generate digest text
-        profile_full_resp = db.table("user_profiles").select("*").eq("id", profile_id).single().execute()
-        profile_data = profile_full_resp.data or {}
+            # Research gap detection
+            gap_result = run_gap_tool(profile_id)
+            log_step(f"Gaps:{profile_id[:8]}", gap_result)
 
-        digest_prompt = DAILY_DIGEST_PROMPT.format(
-            interests=", ".join(profile_data.get("research_interests", [])),
-            total_fetched=fetch_result.get("total_fetched", 0),
-            highly_relevant=score_result.get("highly_relevant", 0),
-            potentially_relevant=score_result.get("potentially_relevant", 0),
-            escalated=escalation_result.get("escalation_count", 0),
-            top_papers=top_titles or "No highly relevant papers found today.",
-        )
+            # Escalation summary
+            escalation_result = run_escalation_tool(profile_id)
+            log_step(f"Escalation:{profile_id[:8]}", escalation_result)
 
-        try:
-            llm = ChatGroq(api_key=settings.groq_api_key, model_name="llama3-8b-8192", temperature=0.4)
-            digest_response = llm.invoke([HumanMessage(content=digest_prompt)])
-            digest_summary = digest_response.content.strip()
-        except Exception as e:
-            digest_summary = f"Daily agent run completed. {score_result.get('highly_relevant', 0)} highly relevant papers found."
+            # Daily Digest
+            try:
+                top_recs_resp = (
+                    db.table("recommendations")
+                    .select("paper_id, final_score")
+                    .eq("profile_id", profile_id)
+                    .eq("category", "highly_relevant")
+                    .order("final_score", desc=True)
+                    .limit(5)
+                    .execute()
+                )
+                top_paper_ids = [r["paper_id"] for r in (top_recs_resp.data or [])]
 
-        # Upsert daily digest
-        db.table("daily_digests").upsert(
-            {
-                "profile_id": profile_id,
-                "digest_date": date.today().isoformat(),
-                "total_fetched": fetch_result.get("total_fetched", 0),
-                "highly_relevant": score_result.get("highly_relevant", 0),
-                "potentially_relevant": score_result.get("potentially_relevant", 0),
-                "escalated": escalation_result.get("escalation_count", 0),
-                "summary": digest_summary,
-                "top_paper_ids": top_paper_ids,
-            },
-            on_conflict="profile_id,digest_date",
-        ).execute()
+                top_titles = ""
+                if top_paper_ids:
+                    papers_resp = db.table("papers").select("title").in_("id", top_paper_ids).execute()
+                    top_titles = "\n".join([f"- {p['title']}" for p in (papers_resp.data or [])])
 
-        log_step("Digest", "Generated and saved")
+                interests = profile.get("research_interests") or []
+                digest_prompt = DAILY_DIGEST_PROMPT.format(
+                    interests=", ".join(interests),
+                    total_fetched=fetch_result.get("total_fetched", 0),
+                    highly_relevant=score_result.get("highly_relevant", 0),
+                    potentially_relevant=score_result.get("potentially_relevant", 0),
+                    escalated=escalation_result.get("escalation_count", 0),
+                    top_papers=top_titles or "No highly relevant papers found today.",
+                )
 
-        # ── Mark run as completed ───────────────────────────────────────
+                try:
+                    llm = ChatGroq(api_key=settings.groq_api_key, model_name="llama-3.1-8b-instant", temperature=0.4)
+                    digest_response = llm.invoke([HumanMessage(content=digest_prompt)])
+                    digest_summary = digest_response.content.strip()
+                except Exception as e:
+                    logger.warning(f"[Orchestrator] Digest LLM error: {e}")
+                    digest_summary = f"Agent run completed. {score_result.get('highly_relevant', 0)} highly relevant papers found."
+
+                db.table("daily_digests").upsert(
+                    {
+                        "profile_id": profile_id,
+                        "digest_date": date.today().isoformat(),
+                        "total_fetched": fetch_result.get("total_fetched", 0),
+                        "highly_relevant": score_result.get("highly_relevant", 0),
+                        "potentially_relevant": score_result.get("potentially_relevant", 0),
+                        "escalated": escalation_result.get("escalation_count", 0),
+                        "summary": digest_summary,
+                        "top_paper_ids": top_paper_ids,
+                    },
+                    on_conflict="profile_id,digest_date",
+                ).execute()
+
+                log_step(f"Digest:{profile_id[:8]}", "Generated and saved")
+            except Exception as e:
+                logger.error(f"[Orchestrator] Digest error for profile {profile_id}: {e}")
+
+        # ── Mark run as completed ─────────────────────────────────────────
+        # FIX: Use Python datetime — Supabase REST client does NOT evaluate SQL expressions like "now()"
         db.table("agent_runs").update({
             "status": "completed",
-            "completed_at": "now()",
+            "completed_at": _now_iso(),
             "papers_fetched": fetch_result.get("total_fetched", 0),
-            "papers_processed": score_result.get("scored", 0),
-            "log": "\n".join(run_log),
+            "papers_processed": sum(s.get("scored", 0) for s in all_score_results),
+            "log": "[DONE] Pipeline finished.",
         }).eq("id", run_id).execute()
 
         return {
             "status": "completed",
             "run_id": run_id,
-            "fetch": fetch_result,
-            "embed": embed_result,
-            "score": score_result,
-            "analyze": analyze_result,
-            "gaps": gap_result,
-            "escalation": escalation_result,
+            "fetch": total_fetch,
+            "embed": total_embed,
+            "profiles_processed": len(profiles),
         }
 
     except Exception as e:
         logger.error(f"[Orchestrator] Fatal error: {e}")
         run_log.append(f"FATAL: {e}")
+        # FIX: Same fix in the error path
         db.table("agent_runs").update({
             "status": "failed",
-            "completed_at": "now()",
+            "completed_at": _now_iso(),
             "errors": [str(e)],
             "log": "\n".join(run_log),
         }).eq("id", run_id).execute()

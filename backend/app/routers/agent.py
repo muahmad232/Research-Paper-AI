@@ -1,7 +1,13 @@
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Header
+"""
+Agent Router — Trigger and monitor the agent pipeline.
+POST /agent/run  requires the agent secret (not user auth — admin operation).
+GET  /agent/status requires user auth.
+"""
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Header, Depends
 from typing import Optional
 from app.config import settings
 from app.database import get_db
+from app.auth import get_current_user
 from app.agent.orchestrator import run_daily_agent
 
 router = APIRouter(prefix="/agent", tags=["agent"])
@@ -13,7 +19,7 @@ async def trigger_agent(
     x_agent_secret: Optional[str] = Header(None),
 ):
     """
-    Trigger the daily agent pipeline.
+    Trigger the daily agent pipeline for ALL users who have profiles.
     Requires X-Agent-Secret header matching DAILY_AGENT_SECRET env var.
     """
     if x_agent_secret != settings.daily_agent_secret:
@@ -24,8 +30,8 @@ async def trigger_agent(
 
 
 @router.get("/status")
-def get_agent_status():
-    """Get the status of the most recent agent run."""
+def get_agent_status(current_user: dict = Depends(get_current_user)):
+    """Get the status of the most recent agent runs."""
     db = get_db()
     try:
         resp = (

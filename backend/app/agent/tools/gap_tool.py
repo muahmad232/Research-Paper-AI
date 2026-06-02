@@ -1,9 +1,11 @@
 """
 Research Gap Detection Tool
 Analyzes the corpus of relevant papers to find gaps, trends, and hot topics.
+Uses upsert to prevent duplicate gaps accumulating across runs.
 """
 import json
 import logging
+from datetime import date, timedelta
 from typing import Any, Dict
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
@@ -17,32 +19,32 @@ logger = logging.getLogger(__name__)
 def run_gap_tool(profile_id: str) -> Dict[str, Any]:
     """
     Analyze recent highly-relevant papers to detect research gaps and trends.
-    Stores gap reports in the research_gaps table.
+    FIX: Uses upsert on (profile_id, gap_title) to prevent duplicate gap rows.
     """
     db = get_db()
 
     # Load profile
     profile_resp = db.table("user_profiles").select("*").eq("id", profile_id).single().execute()
     profile = profile_resp.data or {}
-    interests = profile.get("research_interests", [])
+    interests = profile.get("research_interests") or []
 
     # Get recent highly relevant papers with their titles and abstracts
+    cutoff = (date.today() - timedelta(days=7)).isoformat()
     recs_resp = (
         db.table("recommendations")
         .select("paper_id, analysis")
         .eq("profile_id", profile_id)
         .eq("category", "highly_relevant")
-        .gte("created_at", (__import__('datetime').date.today() - __import__('datetime').timedelta(days=7)).isoformat())
+        .gte("created_at", cutoff)
         .limit(30)
         .execute()
     )
     recs = recs_resp.data or []
 
     if len(recs) < 3:
-        logger.info("[GapTool] Not enough papers to detect gaps (need ≥3).")
+        logger.info(f"[GapTool] Not enough papers for profile {profile_id} to detect gaps (need ≥3).")
         return {"gaps_created": 0, "reason": "insufficient_papers"}
 
-    # Gather paper IDs and themes from analysis
     paper_ids = [r["paper_id"] for r in recs]
     themes_text = []
     for rec in recs:
@@ -52,7 +54,7 @@ def run_gap_tool(profile_id: str) -> Dict[str, Any]:
         if analysis.get("method"):
             themes_text.append(f"  Method: {analysis['method']}")
 
-    themes = "\n".join(themes_text[:50])  # Limit tokens
+    themes = "\n".join(themes_text[:50])
 
     if not themes:
         # Fallback: fetch titles
@@ -67,7 +69,7 @@ def run_gap_tool(profile_id: str) -> Dict[str, Any]:
 
     llm = ChatGroq(
         api_key=settings.groq_api_key,
-        model_name="llama3-8b-8192",
+        model_name="llama-3.1-8b-instant",
         temperature=0.3,
         max_tokens=1500,
     )
@@ -87,16 +89,24 @@ def run_gap_tool(profile_id: str) -> Dict[str, Any]:
 
         created = 0
         for gap in gaps:
-            db.table("research_gaps").insert({
-                "profile_id": profile_id,
-                "gap_title": gap.get("gap_title", "Untitled Gap"),
-                "description": gap.get("description", ""),
-                "supporting_paper_ids": paper_ids[:5],
-                "trend_type": gap.get("trend_type", "gap"),
-            }).execute()
-            created += 1
+            gap_title = gap.get("gap_title", "Untitled Gap")
+            try:
+                # FIX: Upsert by (profile_id, gap_title) — prevents duplicates across runs
+                db.table("research_gaps").upsert(
+                    {
+                        "profile_id": profile_id,
+                        "gap_title": gap_title,
+                        "description": gap.get("description", ""),
+                        "supporting_paper_ids": paper_ids[:5],
+                        "trend_type": gap.get("trend_type", "gap"),
+                    },
+                    on_conflict="profile_id,gap_title",
+                ).execute()
+                created += 1
+            except Exception as e:
+                logger.error(f"[GapTool] Upsert failed for gap '{gap_title}': {e}")
 
-        logger.info(f"[GapTool] Created {created} gap records.")
+        logger.info(f"[GapTool] Upserted {created} gap records for profile {profile_id}.")
         return {"gaps_created": created}
 
     except Exception as e:

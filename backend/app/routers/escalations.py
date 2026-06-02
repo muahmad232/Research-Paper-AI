@@ -1,16 +1,22 @@
-from fastapi import APIRouter, HTTPException
+"""
+Escalations Router — User-scoped escalation queue management.
+"""
+from fastapi import APIRouter, HTTPException, Depends
 from app.database import get_db
+from app.auth import get_current_user
 from app.models.recommendation import EscalationDecision
 
 router = APIRouter(prefix="/escalations", tags=["escalations"])
 
 
 @router.get("")
-def list_escalations():
-    """Get all papers in the escalation queue (pending human decision)."""
+def list_escalations(current_user: dict = Depends(get_current_user)):
+    """Get all papers in this user's escalation queue (pending human decision)."""
     db = get_db()
+    user_id = current_user["sub"]
+
     try:
-        profile_resp = db.table("user_profiles").select("id").limit(1).execute()
+        profile_resp = db.table("user_profiles").select("id").eq("user_id", user_id).execute()
         if not profile_resp.data:
             return {"escalations": [], "total": 0}
         profile_id = profile_resp.data[0]["id"]
@@ -35,21 +41,34 @@ def list_escalations():
 
 
 @router.post("/{recommendation_id}/decide")
-def decide_escalation(recommendation_id: str, decision: EscalationDecision):
-    """Accept or reject an escalated paper."""
+def decide_escalation(
+    recommendation_id: str,
+    decision: EscalationDecision,
+    current_user: dict = Depends(get_current_user),
+):
+    """Accept or reject an escalated paper. Verifies it belongs to the current user."""
     db = get_db()
+    user_id = current_user["sub"]
+
     try:
         if decision.decision not in ("accept", "reject"):
             raise HTTPException(status_code=400, detail="decision must be 'accept' or 'reject'")
+
+        # Ensure the recommendation belongs to this user's profile
+        profile_resp = db.table("user_profiles").select("id").eq("user_id", user_id).execute()
+        if not profile_resp.data:
+            raise HTTPException(status_code=404, detail="Profile not found.")
+        profile_id = profile_resp.data[0]["id"]
 
         result = (
             db.table("recommendations")
             .update({"user_decision": decision.decision})
             .eq("id", recommendation_id)
+            .eq("profile_id", profile_id)
             .execute()
         )
         if not result.data:
-            raise HTTPException(status_code=404, detail="Recommendation not found")
+            raise HTTPException(status_code=404, detail="Recommendation not found.")
         return result.data[0]
     except HTTPException:
         raise

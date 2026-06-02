@@ -1,14 +1,17 @@
--- ============================================================
--- Research Paper Screening Agent — Supabase Schema
--- Run this in Supabase SQL Editor
--- ============================================================
+-- Run this script in the Supabase SQL Editor to wipe the old schema 
+-- and replace it with the new multi-user schema.
+-- WARNING: This will delete existing profiles, recommendations, and gaps.
+-- (Papers themselves are kept to avoid re-downloading).
 
--- Enable pgvector extension
-CREATE EXTENSION IF NOT EXISTS vector;
+DROP TABLE IF EXISTS daily_digests CASCADE;
+DROP TABLE IF EXISTS research_gaps CASCADE;
+DROP TABLE IF EXISTS recommendations CASCADE;
+DROP TABLE IF EXISTS user_profiles CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS agent_runs CASCADE;
 
--- ============================================================
--- Users (custom auth — no Supabase Auth required)
--- ============================================================
+-- Now recreate everything with the correct columns:
+
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,
@@ -17,9 +20,6 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================
--- User Profile (one per user)
--- ============================================================
 CREATE TABLE IF NOT EXISTS user_profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -33,32 +33,6 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     UNIQUE(user_id)
 );
 
--- ============================================================
--- Raw Papers (fetched from arXiv / Semantic Scholar)
--- Shared across all users — deduped by external_id
--- ============================================================
-CREATE TABLE IF NOT EXISTS papers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    external_id TEXT UNIQUE NOT NULL,
-    source TEXT NOT NULL CHECK (source IN ('arxiv', 'semantic_scholar')),
-    title TEXT NOT NULL,
-    abstract TEXT,
-    authors TEXT[] DEFAULT '{}',
-    categories TEXT[] DEFAULT '{}',
-    published_at DATE,
-    url TEXT,
-    embedding VECTOR(384),
-    fetched_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Vector similarity index (cosine distance)
-CREATE INDEX IF NOT EXISTS papers_embedding_idx
-    ON papers USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
-
--- ============================================================
--- Recommendations (scored + classified papers, per user profile)
--- ============================================================
 CREATE TABLE IF NOT EXISTS recommendations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     paper_id UUID NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
@@ -81,9 +55,6 @@ CREATE INDEX IF NOT EXISTS recommendations_category_idx ON recommendations(categ
 CREATE INDEX IF NOT EXISTS recommendations_escalated_idx ON recommendations(escalated) WHERE escalated = TRUE;
 CREATE INDEX IF NOT EXISTS recommendations_score_idx ON recommendations(final_score DESC);
 
--- ============================================================
--- Research Gaps (per user profile)
--- ============================================================
 CREATE TABLE IF NOT EXISTS research_gaps (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     profile_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
@@ -95,9 +66,6 @@ CREATE TABLE IF NOT EXISTS research_gaps (
     UNIQUE(profile_id, gap_title)
 );
 
--- ============================================================
--- Daily Digests (per user profile, per date)
--- ============================================================
 CREATE TABLE IF NOT EXISTS daily_digests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     profile_id UUID NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
@@ -112,9 +80,6 @@ CREATE TABLE IF NOT EXISTS daily_digests (
     UNIQUE(profile_id, digest_date)
 );
 
--- ============================================================
--- Agent Run Logs (global — one agent serves all users)
--- ============================================================
 CREATE TABLE IF NOT EXISTS agent_runs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     status TEXT NOT NULL CHECK (status IN ('running', 'completed', 'failed')),
@@ -126,9 +91,6 @@ CREATE TABLE IF NOT EXISTS agent_runs (
     log TEXT
 );
 
--- ============================================================
--- Triggers
--- ============================================================
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

@@ -1,5 +1,6 @@
 """
-Paper Fetch Tool — fetches from arXiv + Semantic Scholar and upserts to DB
+Paper Fetch Tool — fetches from arXiv + Semantic Scholar and upserts to DB.
+Papers are shared across all users (deduped by external_id).
 """
 import logging
 from typing import Any, Dict, List
@@ -22,7 +23,6 @@ def run_fetch_tool(
     """
     db = get_db()
 
-    # Fetch from both sources
     arxiv_papers = fetch_arxiv_papers(query_terms, categories, max_papers // 2, days_back)
     ss_papers = fetch_semantic_scholar_papers(query_terms, max_papers // 2, days_back)
 
@@ -32,18 +32,23 @@ def run_fetch_tool(
 
     for paper in all_papers:
         try:
-            # Upsert — skip if external_id already exists
-            db.table("papers").upsert(
+            result = db.table("papers").upsert(
                 {k: v for k, v in paper.items() if v is not None},
                 on_conflict="external_id",
                 ignore_duplicates=True,
             ).execute()
-            inserted += 1
+
+            # FIX: Only count as inserted if the DB actually returned a new row.
+            # ignore_duplicates=True means existing rows return empty data.
+            if result.data:
+                inserted += 1
+            else:
+                skipped += 1
         except Exception as e:
             logger.warning(f"[FetchTool] Upsert failed for {paper.get('external_id')}: {e}")
             skipped += 1
 
-    logger.info(f"[FetchTool] Inserted {inserted}, skipped {skipped}")
+    logger.info(f"[FetchTool] Inserted {inserted} new, skipped {skipped} duplicates")
     return {
         "total_fetched": len(all_papers),
         "arxiv_count": len(arxiv_papers),

@@ -15,3 +15,5 @@ python-multipart==0.0.20
 apscheduler==3.10.4
 numpy
 scikit-learn
+python-jose[cryptography]==3.3.0
+bcrypt==5.0.0
