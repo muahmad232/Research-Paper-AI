@@ -16,14 +16,12 @@ router = APIRouter(prefix="/agent", tags=["agent"])
 @router.post("/run")
 async def trigger_agent(
     background_tasks: BackgroundTasks,
-    x_agent_secret: Optional[str] = Header(None),
+    current_user: dict = Depends(get_current_user),
 ):
     """
     Trigger the daily agent pipeline for ALL users who have profiles.
-    Requires X-Agent-Secret header matching DAILY_AGENT_SECRET env var.
+    Requires an authenticated user.
     """
-    if x_agent_secret != settings.daily_agent_secret:
-        raise HTTPException(status_code=401, detail="Invalid agent secret")
 
     background_tasks.add_task(run_daily_agent)
     return {"status": "Agent pipeline started in background"}

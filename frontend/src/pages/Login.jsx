@@ -24,6 +24,20 @@ export default function Login() {
     },
   })
 
+  const { mutate: guestMutate, isPending: isGuestPending } = useMutation({
+    mutationFn: () => authApi.guestLogin(),
+    onSuccess: (data) => {
+      login(data.user, data.token)
+      toast.success('Logged in as Guest', {
+        style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
+      })
+      navigate('/')
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to login as guest')
+    }
+  })
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.email || !form.password) return
@@ -116,15 +130,32 @@ export default function Login() {
             )}
 
             {/* Submit */}
-            <button
-              id="login-submit"
-              type="submit"
-              disabled={isPending || !form.email || !form.password}
-              className="btn-primary w-full justify-center py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              <LogIn size={16} />
-              {isPending ? 'Signing in...' : 'Sign In'}
-            </button>
+            <div className="space-y-3">
+              <button
+                id="login-submit"
+                type="submit"
+                disabled={isPending || isGuestPending || !form.email || !form.password}
+                className="btn-primary w-full justify-center py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                <LogIn size={16} />
+                {isPending ? 'Signing in...' : 'Sign In'}
+              </button>
+
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-white/10"></div>
+                <span className="flex-shrink-0 mx-4 text-xs text-gray-500 uppercase">or</span>
+                <div className="flex-grow border-t border-white/10"></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => guestMutate()}
+                disabled={isPending || isGuestPending}
+                className="btn-secondary w-full justify-center py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {isGuestPending ? 'Generating session...' : 'Continue as Guest'}
+              </button>
+            </div>
           </form>
 
           <div className="mt-6 pt-6 border-t border-white/5 text-center">

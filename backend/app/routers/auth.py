@@ -7,6 +7,8 @@ from pydantic import BaseModel, EmailStr
 from app.database import get_db
 from app.auth import hash_password, verify_password, create_access_token, get_current_user
 
+import uuid
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -102,6 +104,44 @@ def login(body: LoginRequest):
         "token": token,
         "user": {"id": user["id"], "email": user["email"], "name": user["name"]},
     }
+
+
+@router.post("/guest", response_model=AuthResponse)
+def guest_login():
+    """Create a temporary guest account and return a JWT token."""
+    db = get_db()
+    
+    guest_id = str(uuid.uuid4())[:8]
+    email = f"guest_{guest_id}@example.com"
+    name = "Guest User"
+    password = str(uuid.uuid4())
+    
+    try:
+        result = db.table("users").insert({
+            "email": email,
+            "name": name,
+            "password_hash": hash_password(password),
+        }).execute()
+        
+        user = result.data[0]
+        
+        # Create a default empty profile for the guest
+        db.table("user_profiles").insert({
+            "user_id": user["id"],
+            "research_interests": [],
+            "keywords": [],
+            "preferred_domains": [],
+            "preferred_venues": [],
+            "excluded_topics": [],
+        }).execute()
+
+        token = create_access_token(user["id"], user["email"], user["name"])
+        return {
+            "token": token,
+            "user": {"id": user["id"], "email": user["email"], "name": user["name"]},
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/me")

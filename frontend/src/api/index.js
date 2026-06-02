@@ -3,6 +3,7 @@ import { api } from './client'
 export const authApi = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
+  guestLogin: () => api.post('/auth/guest'),
   me: () => api.get('/auth/me'),
 }
 
@@ -32,7 +33,6 @@ export const digestApi = {
 }
 
 export const agentApi = {
-  trigger: (secret) =>
-    api.post('/agent/run', {}, { headers: { 'X-Agent-Secret': secret } }),
+  trigger: () => api.post('/agent/run'),
   status: () => api.get('/agent/status'),
 }

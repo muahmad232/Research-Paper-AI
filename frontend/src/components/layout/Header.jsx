@@ -6,7 +6,6 @@ import { useAuthStore } from '../../store/authStore'
 import toast from 'react-hot-toast'
 
 export default function Header({ title, subtitle }) {
-  const { agentSecret } = useAuthStore()
   const queryClient = useQueryClient()
   const pollingRef = useRef(null)
 
@@ -17,7 +16,7 @@ export default function Header({ title, subtitle }) {
   })
 
   const { mutate: triggerAgent, isPending } = useMutation({
-    mutationFn: () => agentApi.trigger(agentSecret),
+    mutationFn: () => agentApi.trigger(),
     onSuccess: () => {
       toast.success('🤖 Agent pipeline started!', {
         style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
@@ -116,9 +115,9 @@ export default function Header({ title, subtitle }) {
         {/* Run Agent Button */}
         <button
           onClick={() => triggerAgent()}
-          disabled={isRunning || !agentSecret}
+          disabled={isRunning}
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-          title={!agentSecret ? 'Set agent secret in Settings first' : isRunning ? 'Agent is already running' : ''}
+          title={isRunning ? 'Agent is already running' : ''}
         >
           <RefreshCw size={14} className={isRunning ? 'animate-spin' : ''} />
           {isRunning ? 'Running...' : 'Run Agent'}

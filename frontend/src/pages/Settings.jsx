@@ -45,7 +45,7 @@ function TagInput({ label, values = [], onChange, placeholder }) {
 export default function Settings() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
-  const { agentSecret, setAgentSecret, user, logout } = useAuthStore()
+  const { user, logout } = useAuthStore()
 
   const [form, setForm] = useState({
     research_interests: [],
@@ -152,24 +152,6 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* Agent Secret */}
-        <div className="glass rounded-2xl p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Key size={16} className="text-amber-400" />
-            <h3 className="text-base font-bold text-white">Agent Secret</h3>
-          </div>
-          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-            Required to manually trigger the agent from the dashboard. This matches the <code className="text-brand-400 bg-surface-700 px-1 py-0.5 rounded text-[10px]">DAILY_AGENT_SECRET</code> in your backend <code className="text-brand-400 bg-surface-700 px-1 py-0.5 rounded text-[10px]">.env</code>.
-          </p>
-          <input
-            type="password"
-            value={agentSecret}
-            onChange={e => setAgentSecret(e.target.value)}
-            placeholder="Enter your agent secret..."
-            className="input-field"
-          />
-          <p className="text-[10px] text-gray-600 mt-2">Stored locally in your browser only.</p>
-        </div>
       </div>
     </>
   )

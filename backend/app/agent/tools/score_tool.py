@@ -134,7 +134,7 @@ def run_score_tool(profile_id: str) -> Dict[str, Any]:
         rec_score = round(_recency_score(paper.get("published_at") or ""), 2)
 
         # Weighted final score
-        final = round(sem_score * 0.55 + kw_score * 0.30 + rec_score * 0.15, 2)
+        final = round(sem_score * 0.60 + kw_score * 0.30 + rec_score * 0.10, 2)
         category = _classify(final)
         escalate = _should_escalate(sem_score, kw_score, final)
 

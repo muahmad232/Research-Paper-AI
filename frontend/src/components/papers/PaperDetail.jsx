@@ -39,13 +39,13 @@ export default function PaperDetail({ rec, onClose }) {
   })
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-end" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-2xl h-screen glass border-l border-white/10 overflow-y-auto animate-slide-in"
+        className="w-full max-w-2xl h-screen bg-[#1e1e35]/95 backdrop-blur-2xl border-l border-white/10 overflow-y-auto animate-slide-in shadow-[0_0_50px_rgba(0,0,0,0.5)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 glass border-b border-white/5 px-6 py-4 flex items-start justify-between gap-3">
+        <div className="sticky top-0 bg-[#1e1e35]/90 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-start justify-between gap-3 z-10">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <span className="badge bg-surface-500/80 text-gray-400 border border-white/5 text-[10px]">
