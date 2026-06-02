@@ -22,6 +22,9 @@ export default function Header({ title, subtitle }) {
       toast.success('🤖 Agent pipeline started!', {
         style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
       })
+      
+      // Instantly trigger a refetch so the progress bar appears and fast-polling kicks in
+      queryClient.invalidateQueries({ queryKey: ['agent-status'] })
 
       // Poll for completion every 8 seconds, stop when done/failed
       let attempts = 0
@@ -73,7 +76,7 @@ export default function Header({ title, subtitle }) {
 
       <div className="flex items-center gap-3">
         {/* Agent Status Pill with Progress */}
-        {lastRun && (
+        {(lastRun || isRunning) && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-700 border border-white/5 relative overflow-hidden group">
             {isRunning && (
               <div className="absolute inset-0 bg-brand-500/10 animate-pulse" />
@@ -82,7 +85,7 @@ export default function Header({ title, subtitle }) {
             <div className="relative flex items-center gap-2">
               {isRunning ? (
                 <Loader2 size={13} className="text-brand-400 animate-spin" />
-              ) : lastRun.status === 'completed' ? (
+              ) : lastRun?.status === 'completed' ? (
                 <CheckCircle2 size={13} className="text-emerald-400" />
               ) : (
                 <XCircle size={13} className="text-rose-400" />
@@ -91,7 +94,7 @@ export default function Header({ title, subtitle }) {
               <span className="text-xs text-gray-400 font-medium">
                 {isRunning
                   ? displayLog
-                  : lastRun.status === 'completed'
+                  : lastRun?.status === 'completed'
                   ? `Last: ${lastRun.papers_fetched ?? 0} papers`
                   : 'Last run failed'}
               </span>

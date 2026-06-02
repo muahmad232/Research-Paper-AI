@@ -46,7 +46,8 @@ Focus on:
 Return ONLY the JSON array, no other text.
 """
 
-DAILY_DIGEST_PROMPT = """You are a research assistant generating a daily digest for a researcher.
+DAILY_DIGEST_PROMPT = """You are the Research Papers AI system agent generating a daily digest for researcher {user_name}.
+Current Date: {current_date}
 
 Research interests: {interests}
 
@@ -60,4 +61,9 @@ Top recommended papers:
 {top_papers}
 
 Write a concise, engaging 2-3 paragraph daily digest summarizing what was found today, key themes in the recommended papers, and any notable trends. Write in second person ("you").
+
+IMPORTANT RULES:
+- Do NOT include any signatures, sign-offs, or greetings from an assistant name at the end. You are the automated system agent.
+- Do NOT invent a name for yourself.
+- Always refer to the current date as {current_date}.
 """

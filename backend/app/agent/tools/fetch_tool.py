@@ -6,7 +6,7 @@ import logging
 from typing import Any, Dict, List
 from app.database import get_db
 from app.services.arxiv_service import fetch_arxiv_papers
-from app.services.semantic_scholar_service import fetch_semantic_scholar_papers
+from app.services.openalex_service import fetch_openalex_papers
 
 logger = logging.getLogger(__name__)
 
@@ -24,9 +24,9 @@ def run_fetch_tool(
     db = get_db()
 
     arxiv_papers = fetch_arxiv_papers(query_terms, categories, max_papers // 2, days_back)
-    ss_papers = fetch_semantic_scholar_papers(query_terms, max_papers // 2, days_back)
+    oa_papers = fetch_openalex_papers(query_terms, max_papers // 2, days_back)
 
-    all_papers = arxiv_papers + ss_papers
+    all_papers = arxiv_papers + oa_papers
     inserted = 0
     skipped = 0
 
@@ -52,7 +52,7 @@ def run_fetch_tool(
     return {
         "total_fetched": len(all_papers),
         "arxiv_count": len(arxiv_papers),
-        "semantic_scholar_count": len(ss_papers),
+        "openalex_count": len(oa_papers),
         "inserted": inserted,
         "skipped": skipped,
     }

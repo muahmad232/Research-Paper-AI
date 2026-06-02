@@ -122,15 +122,24 @@ export default function Settings() {
 
         {/* Research Profile */}
         <div className="glass rounded-2xl p-6 space-y-6">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mb-2">
             <SettingsIcon size={16} className="text-brand-400" />
             <h3 className="text-base font-bold text-white">Research Profile</h3>
             {isLoading && <span className="text-xs text-gray-500 ml-auto">Loading...</span>}
           </div>
+          
+          <div className="bg-brand-500/10 border border-brand-500/20 rounded-xl p-4 mb-6">
+            <h4 className="text-sm font-semibold text-brand-300 mb-1">💡 How to build a great profile</h4>
+            <ul className="text-xs text-gray-400 space-y-1.5 list-disc pl-4">
+              <li><strong className="text-gray-300">Research Interests</strong> are used for semantic matching. Write full descriptive sentences (e.g. <i>"I am researching efficient fine-tuning techniques for LLMs"</i>).</li>
+              <li><strong className="text-gray-300">Keywords</strong> are used for exact string matching. Use highly specific acronyms and jargon (e.g. <i>"LoRA", "RAG", "Transformers"</i>).</li>
+            </ul>
+          </div>
+
           <TagInput label="Research Interests" values={form.research_interests} onChange={update('research_interests')}
-            placeholder="e.g. LLM Agents, Healthcare AI..." />
+            placeholder="e.g. I am researching how to use retrieval-augmented generation in medical imaging..." />
           <TagInput label="Keywords" values={form.keywords} onChange={update('keywords')}
-            placeholder="e.g. RAG, hallucination, transformer..." />
+            placeholder="e.g. RAG, RLHF, Zero-shot, ViT, LoRA..." />
           <TagInput label="Preferred Domains" values={form.preferred_domains} onChange={update('preferred_domains')}
             placeholder="e.g. NLP, Healthcare, Finance..." />
           <TagInput label="Preferred Venues" values={form.preferred_venues} onChange={update('preferred_venues')}

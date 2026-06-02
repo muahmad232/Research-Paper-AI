@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     # Agent
     daily_agent_secret: str = "changeme"
     max_papers_per_run: int = 200
-    arxiv_query_terms: str = "AI,machine learning,deep learning,NLP,transformer,language model"
-    arxiv_categories: str = "cs.AI,cs.CL,cs.LG"
+    arxiv_query_terms: str = "AI,machine learning,deep learning,NLP,transformer,language model,cybersecurity,security,computer vision,robotics,software engineering"
+    arxiv_categories: str = "cs.AI,cs.CL,cs.LG,cs.CR,cs.CV,cs.RO,cs.SE,cs.HC,stat.ML"
 
     # JWT Auth
     jwt_secret_key: str = "CHANGE_ME_IN_PRODUCTION_USE_A_LONG_RANDOM_STRING"

@@ -38,6 +38,12 @@ export default function Dashboard() {
   const escalationCount = escalationsData?.total || 0
   const gapCount = gapsData?.total || 0
 
+  const renderMarkdown = (text) => {
+    if (!text) return null;
+    const html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  };
+
   return (
     <>
       <Header
@@ -89,7 +95,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">{digest.summary}</p>
+            <p className="text-sm text-gray-400 leading-relaxed">{renderMarkdown(digest.summary)}</p>
           </div>
         )}
 

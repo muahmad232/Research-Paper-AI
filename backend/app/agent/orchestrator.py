@@ -79,7 +79,7 @@ async def run_daily_agent() -> Dict[str, Any]:
         total_embed = embed_result
 
         # ── Step 3–7: Run per-user profile ────────────────────────────────
-        profiles_resp = db.table("user_profiles").select("id, user_id, research_interests, keywords, excluded_topics").execute()
+        profiles_resp = db.table("user_profiles").select("id, user_id, research_interests, keywords, excluded_topics, users(name)").execute()
         profiles = profiles_resp.data or []
 
         if not profiles:
@@ -128,8 +128,12 @@ async def run_daily_agent() -> Dict[str, Any]:
                     papers_resp = db.table("papers").select("title").in_("id", top_paper_ids).execute()
                     top_titles = "\n".join([f"- {p['title']}" for p in (papers_resp.data or [])])
 
+                user_name = profile.get("users", {}).get("name", "Researcher") if profile.get("users") else "Researcher"
+                
                 interests = profile.get("research_interests") or []
                 digest_prompt = DAILY_DIGEST_PROMPT.format(
+                    user_name=user_name,
+                    current_date=date.today().strftime("%B %d, %Y"),
                     interests=", ".join(interests),
                     total_fetched=fetch_result.get("total_fetched", 0),
                     highly_relevant=score_result.get("highly_relevant", 0),
