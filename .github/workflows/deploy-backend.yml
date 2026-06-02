@@ -1,0 +1,46 @@
+name: Sync Backend to Hugging Face Space
+
+on:
+  push:
+    branches: [main]
+    # Only run this action when files inside the backend folder change
+    paths:
+      - 'backend/**'
+
+  # Allow running this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout GitHub code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push backend directory to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Set up git identity
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          
+          # 1. Clone your empty Hugging Face Space to a temporary folder
+          # Make sure to replace muahmad123/research-ai if your space name is different
+          git clone https://muahmad123:$HF_TOKEN@huggingface.co/spaces/muahmad123/research-ai /tmp/hf_space
+          
+          # 2. Navigate into the cloned HF space
+          cd /tmp/hf_space
+          
+          # 3. Remove all old files (except the hidden .git tracking folder)
+          find . -maxdepth 1 ! -name '.git' ! -name '.' ! -name '..' -exec rm -rf {} +
+          
+          # 4. Copy the entire contents of your GitHub backend/ folder into the HF space
+          cp -r $GITHUB_WORKSPACE/backend/* .
+          
+          # 5. Commit and push the changes back to Hugging Face
+          git add .
+          git commit -m "Auto-sync backend from GitHub Actions" || echo "No changes to commit"
+          git push
