@@ -26,7 +26,7 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-async def run_daily_agent() -> Dict[str, Any]:
+def run_daily_agent() -> Dict[str, Any]:
     """
     Execute the full daily agent pipeline for every user profile in the DB.
 
@@ -61,32 +61,72 @@ async def run_daily_agent() -> Dict[str, Any]:
     total_embed = {}
 
     try:
-        # ── Step 1: Fetch papers (once, shared across all users) ──────────
-        query_terms = settings.arxiv_query_terms.split(",")
-        categories = settings.arxiv_categories.split(",")
+        # ── Step 0: Get User Profiles ─────────────────────────────────────
+        profiles_resp = db.table("user_profiles").select("id, user_id, research_interests, keywords, excluded_topics, users(name)").execute()
+        profiles = profiles_resp.data or []
 
-        fetch_result = run_fetch_tool(
-            query_terms=query_terms,
-            categories=categories,
-            max_papers=settings.max_papers_per_run,
-        )
-        log_step("Fetch", fetch_result)
-        total_fetch = fetch_result
+        if not profiles:
+            log_step("Profiles", "No user profiles found — skipping pipeline.")
+            return {"status": "completed", "run_id": run_id}
+            
+        log_step("Profiles", f"Processing {len(profiles)} profile(s)")
+
+        # ── Step 1: Fetch papers PER USER using LLM ──────────
+        from app.agent.prompts import GENERATE_SEARCH_QUERY_PROMPT
+        import json
+        
+        llm = ChatGroq(api_key=settings.groq_api_key, model_name="llama-3.1-8b-instant", temperature=0.1)
+        total_fetch = {"total_fetched": 0, "arxiv_count": 0, "openalex_count": 0, "inserted": 0, "skipped": 0}
+        
+        # We divide the total max papers by the number of profiles so we don't blow up the DB
+        papers_per_profile = max(10, settings.max_papers_per_run // len(profiles))
+
+        for profile in profiles:
+            profile_id = profile["id"]
+            log_step(f"Fetch:{profile_id[:8]}", "Generating personalized search query...")
+            
+            interests = profile.get("research_interests") or []
+            keywords = profile.get("keywords") or []
+            
+            query_terms = ["machine learning"]
+            categories = ["cs.LG"]
+            
+            if interests or keywords:
+                try:
+                    search_prompt = GENERATE_SEARCH_QUERY_PROMPT.format(
+                        interests=", ".join(interests) if interests else "None",
+                        keywords=", ".join(keywords) if keywords else "None"
+                    )
+                    
+                    search_response = llm.invoke([HumanMessage(content=search_prompt)])
+                    content = search_response.content
+                    json_str = content[content.find("{"):content.rfind("}")+1]
+                    search_data = json.loads(json_str)
+                    
+                    query_terms = search_data.get("query_terms", query_terms)[:3]
+                    categories = search_data.get("categories", categories)[:3]
+                except Exception as e:
+                    logger.warning(f"[Orchestrator] Failed to generate search query for {profile_id}: {e}")
+                    
+            log_step(f"Fetch:{profile_id[:8]}", f"Terms: {query_terms}, Cats: {categories}")
+            
+            fetch_result = run_fetch_tool(
+                query_terms=query_terms,
+                categories=categories,
+                max_papers=papers_per_profile,
+            )
+            
+            for k in total_fetch.keys():
+                total_fetch[k] += fetch_result.get(k, 0)
+
+        log_step("FetchSummary", total_fetch)
 
         # ── Step 2: Generate embeddings (once, shared) ────────────────────
         embed_result = run_embed_tool()
         log_step("Embed", embed_result)
         total_embed = embed_result
 
-        # ── Step 3–7: Run per-user profile ────────────────────────────────
-        profiles_resp = db.table("user_profiles").select("id, user_id, research_interests, keywords, excluded_topics, users(name)").execute()
-        profiles = profiles_resp.data or []
-
-        if not profiles:
-            log_step("Profiles", "No user profiles found — skipping scoring.")
-        else:
-            log_step("Profiles", f"Processing {len(profiles)} profile(s)")
-
+        # ── Step 3–7: Run per-user profile processing ─────────────────────
         all_score_results = []
 
         for profile in profiles:
@@ -173,7 +213,7 @@ async def run_daily_agent() -> Dict[str, Any]:
         db.table("agent_runs").update({
             "status": "completed",
             "completed_at": _now_iso(),
-            "papers_fetched": fetch_result.get("total_fetched", 0),
+            "papers_fetched": total_fetch.get("total_fetched", 0),
             "papers_processed": sum(s.get("scored", 0) for s in all_score_results),
             "log": "[DONE] Pipeline finished.",
         }).eq("id", run_id).execute()

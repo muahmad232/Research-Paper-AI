@@ -4,6 +4,10 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'glass',
+    'glass-hover',
+  ],
   darkMode: 'class',
   theme: {
     extend: {

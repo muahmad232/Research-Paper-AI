@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 CREATE TABLE IF NOT EXISTS papers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     external_id TEXT UNIQUE NOT NULL,
-    source TEXT NOT NULL CHECK (source IN ('arxiv', 'semantic_scholar')),
+    source TEXT NOT NULL CHECK (source IN ('arxiv', 'semantic_scholar', 'openalex')),
     title TEXT NOT NULL,
     abstract TEXT,
     authors TEXT[] DEFAULT '{}',

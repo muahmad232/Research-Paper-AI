@@ -17,8 +17,8 @@ def _recency_score(published_at_str: str) -> float:
     """Decay scoring: 100 for today, decays to ~50 at 7 days, 20 at 30 days."""
     try:
         pub_date = date.fromisoformat(published_at_str)
-        days_old = (date.today() - pub_date).days
-        return max(0.0, 100.0 * math.exp(-0.05 * days_old))
+        days_old = max(0, (date.today() - pub_date).days)
+        return 100.0 * math.exp(-0.05 * days_old)
     except Exception:
         return 50.0
 
@@ -134,14 +134,14 @@ def run_score_tool(profile_id: str) -> Dict[str, Any]:
         rec_score = round(_recency_score(paper.get("published_at") or ""), 2)
 
         # Weighted final score
-        final = round(sem_score * 0.50 + kw_score * 0.30 + rec_score * 0.20, 2)
+        final = round(sem_score * 0.55 + kw_score * 0.30 + rec_score * 0.15, 2)
         category = _classify(final)
         escalate = _should_escalate(sem_score, kw_score, final)
 
         explanation = {
-            "semantic_similarity": {"score": sem_score, "weight": 0.5, "contribution": round(sem_score * 0.5, 2)},
-            "keyword_match": {"score": kw_score, "weight": 0.3, "contribution": round(kw_score * 0.3, 2)},
-            "recency": {"score": rec_score, "weight": 0.2, "contribution": round(rec_score * 0.2, 2)},
+            "semantic_similarity": {"score": sem_score, "weight": 0.55, "contribution": round(sem_score * 0.55, 2)},
+            "keyword_match": {"score": kw_score, "weight": 0.30, "contribution": round(kw_score * 0.30, 2)},
+            "recency": {"score": rec_score, "weight": 0.15, "contribution": round(rec_score * 0.15, 2)},
             "matched_keywords": [kw for kw in keywords if kw.lower() in full_text.lower()],
             "matched_interests": [i for i in interests if i.lower() in full_text.lower()],
         }

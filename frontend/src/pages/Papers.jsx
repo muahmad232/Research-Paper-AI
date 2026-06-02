@@ -17,7 +17,7 @@ const CATEGORIES = [
 const SOURCES = [
   { value: '', label: 'All Sources' },
   { value: 'arxiv', label: 'arXiv' },
-  { value: 'semantic_scholar', label: 'Semantic Scholar' },
+  { value: 'openalex', label: 'OpenAlex' },
 ]
 
 export default function Papers() {

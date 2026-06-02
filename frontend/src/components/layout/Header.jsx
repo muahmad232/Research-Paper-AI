@@ -33,6 +33,10 @@ export default function Header({ title, subtitle }) {
         try {
           const status = await agentApi.status()
           const latest = status?.runs?.[0]
+          
+          // Invalidate papers query to show live updates as agent runs!
+          queryClient.invalidateQueries({ queryKey: ['papers'] })
+          
           if (latest?.status === 'completed' || latest?.status === 'failed') {
             clearInterval(pollingRef.current)
             queryClient.invalidateQueries()
