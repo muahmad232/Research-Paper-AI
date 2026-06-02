@@ -3,6 +3,7 @@ Paper Fetch Tool — fetches from arXiv + Semantic Scholar and upserts to DB.
 Papers are shared across all users (deduped by external_id).
 """
 import logging
+import concurrent.futures
 from typing import Any, Dict, List
 from app.database import get_db
 from app.services.arxiv_service import fetch_arxiv_papers
@@ -23,30 +24,36 @@ def run_fetch_tool(
     """
     db = get_db()
 
-    arxiv_papers = fetch_arxiv_papers(query_terms, categories, max_papers // 2, days_back)
-    oa_papers = fetch_openalex_papers(query_terms, max_papers // 2, days_back)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        future_arxiv = executor.submit(fetch_arxiv_papers, query_terms, categories, max_papers // 2, days_back)
+        future_oa = executor.submit(fetch_openalex_papers, query_terms, max_papers // 2, days_back)
+        arxiv_papers = future_arxiv.result()
+        oa_papers = future_oa.result()
 
     all_papers = arxiv_papers + oa_papers
     inserted = 0
-    skipped = 0
 
-    for paper in all_papers:
-        try:
-            result = db.table("papers").upsert(
-                {k: v for k, v in paper.items() if v is not None},
-                on_conflict="external_id",
-                ignore_duplicates=True,
-            ).execute()
-
-            # FIX: Only count as inserted if the DB actually returned a new row.
-            # ignore_duplicates=True means existing rows return empty data.
-            if result.data:
-                inserted += 1
-            else:
-                skipped += 1
-        except Exception as e:
-            logger.warning(f"[FetchTool] Upsert failed for {paper.get('external_id')}: {e}")
-            skipped += 1
+    if all_papers:
+        cleaned_papers = [{k: v for k, v in p.items() if v is not None} for p in all_papers]
+        
+        # Batch upsert in chunks to ensure reliability
+        chunk_size = 100
+        for i in range(0, len(cleaned_papers), chunk_size):
+            chunk = cleaned_papers[i : i + chunk_size]
+            try:
+                result = db.table("papers").upsert(
+                    chunk,
+                    on_conflict="external_id",
+                    ignore_duplicates=True,
+                ).execute()
+                
+                # When ignore_duplicates=True, Supabase returns the rows that were actually inserted
+                if result.data:
+                    inserted += len(result.data)
+            except Exception as e:
+                logger.error(f"[FetchTool] Bulk upsert failed: {e}")
+                
+    skipped = len(all_papers) - inserted
 
     logger.info(f"[FetchTool] Inserted {inserted} new, skipped {skipped} duplicates")
     return {

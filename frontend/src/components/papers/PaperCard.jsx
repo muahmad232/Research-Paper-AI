@@ -35,7 +35,7 @@ export default function PaperCard({ rec, onClick }) {
           )}
           {paper.source && (
             <span className="badge bg-surface-500/80 text-gray-400 border border-white/5">
-              {paper.source === 'arxiv' ? 'arXiv' : 'Semantic Scholar'}
+              {paper.source === 'arxiv' ? 'arXiv' : 'OpenAlex'}
             </span>
           )}
         </div>

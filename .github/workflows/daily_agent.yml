@@ -8,15 +8,15 @@ on:
 
 jobs:
   run-agent:
-    name: Trigger Daily Paper Screening Agent
+    name: Trigger Daily Paper Screening Agent (All Users)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Agent Pipeline
+      - name: Trigger Agent Pipeline for All Users
         run: |
-          echo "Triggering Research Paper Screening Agent..."
+          echo "Triggering Research Paper Screening Agent for all profiles..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "${{ secrets.BACKEND_URL }}/agent/run" \
+            -X POST "${{ secrets.BACKEND_URL }}/agent/run-all" \
             -H "X-Agent-Secret: ${{ secrets.DAILY_AGENT_SECRET }}" \
             -H "Content-Type: application/json")
           echo "Response code: $RESPONSE"
@@ -24,9 +24,10 @@ jobs:
             echo "❌ Agent trigger failed with status $RESPONSE"
             exit 1
           fi
-          echo "✅ Agent triggered successfully"
+          echo "✅ Agent triggered successfully for all users"
 
       - name: Wait and Check Status
         run: |
           sleep 30
-          curl -s "${{ secrets.BACKEND_URL }}/agent/status" | python3 -m json.tool
+          curl -s "${{ secrets.BACKEND_URL }}/agent/status" \
+            -H "X-Agent-Secret: ${{ secrets.DAILY_AGENT_SECRET }}" | python3 -m json.tool || true

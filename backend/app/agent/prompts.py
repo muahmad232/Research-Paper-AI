@@ -98,3 +98,21 @@ Output EXACTLY and ONLY a JSON object in this format:
   "categories": ["cs.AI", "cs.LG", "stat.ML"]
 }}
 """
+
+LLM_RELEVANCE_SCORE_PROMPT = """You are a research relevance judge. Score each paper's relevance to the researcher's profile on a scale of 0-100.
+
+Researcher Profile:
+{profile_text}
+
+Papers to score:
+{papers_list}
+
+Rules:
+- 85-100: Directly addresses the researcher's core topics
+- 60-84: Closely related, would be useful
+- 35-59: Tangentially related
+- 0-34: Not relevant
+
+Return ONLY a JSON array, one object per paper, in order:
+[{{"idx": 0, "score": 72}}, {{"idx": 1, "score": 45}}, ...]
+No other text."""

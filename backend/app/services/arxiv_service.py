@@ -31,7 +31,7 @@ def fetch_arxiv_papers(
     logger.info(f"[arXiv] Query: {full_query[:120]}...")
 
     try:
-        client = arxiv.Client(page_size=50, delay_seconds=3, num_retries=3)
+        client = arxiv.Client(page_size=50, delay_seconds=1, num_retries=2)
         search = arxiv.Search(
             query=full_query,
             max_results=max_results,
