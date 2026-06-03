@@ -8,6 +8,7 @@ import Header from '../components/layout/Header'
 import PaperCard from '../components/papers/PaperCard'
 import PaperDetail from '../components/papers/PaperDetail'
 import { StatCard, LoadingSkeleton, EmptyState } from '../components/common'
+import OnboardingModal from '../components/common/OnboardingModal'
 import { papersApi, digestApi, escalationsApi, gapsApi } from '../api'
 import { Link } from 'react-router-dom'
 
@@ -172,6 +173,9 @@ export default function Dashboard() {
       {selectedPaper && (
         <PaperDetail rec={selectedPaper} onClose={() => setSelectedPaper(null)} />
       )}
+
+      {/* First-visit onboarding tour — self-manages via localStorage */}
+      <OnboardingModal />
     </>
   )
 }

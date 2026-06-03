@@ -83,8 +83,15 @@ export default function Header({ title, subtitle }) {
         setIsOurRun(false)
         setJustFinished(true)
 
-        // Immediately refresh ALL page data — papers, digest, gaps, escalations
-        queryClient.refetchQueries()
+        // Step 1: immediately mark ALL cache entries as stale
+        // (bypasses staleTime:60s — without this, fresh queries won't refetch)
+        queryClient.invalidateQueries()
+
+        // Step 2: wait 1.5s for the backend DB writes to fully flush,
+        // then force-refetch every active query so the page updates live
+        setTimeout(() => {
+          queryClient.refetchQueries({ type: 'active' })
+        }, 1500)
 
         if (status === 'completed') {
           const n = agentStatus.runs[0].papers_fetched ?? 0

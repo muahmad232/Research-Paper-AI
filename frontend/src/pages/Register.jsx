@@ -29,7 +29,7 @@ export default function Register() {
         style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
         duration: 4000,
       })
-      navigate('/')
+      navigate('/dashboard')
     },
   })
 
@@ -40,7 +40,7 @@ export default function Register() {
       toast.success('Logged in as Guest', {
         style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
       })
-      navigate('/')
+      navigate('/dashboard')
     },
     onError: (err) => {
       toast.error(err.message || 'Failed to login as guest')

@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/papers', icon: FileText, label: 'Papers' },
   { to: '/gaps', icon: Lightbulb, label: 'Research Gaps' },
   { to: '/escalations', icon: AlertTriangle, label: 'Escalations' },
@@ -51,7 +51,6 @@ export default function Sidebar() {
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
             className={({ isActive }) =>
               `nav-item ${isActive ? 'active' : ''}`
             }

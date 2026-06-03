@@ -20,7 +20,7 @@ export default function Login() {
       toast.success(`Welcome back, ${data.user.name}!`, {
         style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
       })
-      navigate('/')
+      navigate('/dashboard')
     },
   })
 
@@ -31,7 +31,7 @@ export default function Login() {
       toast.success('Logged in as Guest', {
         style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
       })
-      navigate('/')
+      navigate('/dashboard')
     },
     onError: (err) => {
       toast.error(err.message || 'Failed to login as guest')
