@@ -1,6 +1,6 @@
 # 🤖 Research Paper Screening Agent
 
-> An autonomous AI agent that discovers, screens, analyzes, and recommends research papers — so you only review what matters.
+> An autonomous AI agent that discovers, screens, analyzes, and recommends research papers tailored to your exact profile — so you only review what matters.
 
 ![Stack](https://img.shields.io/badge/FastAPI-009688?style=flat&logo=fastapi&logoColor=white)
 ![Stack](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black)
@@ -14,14 +14,14 @@
 
 | Feature | Description |
 |---------|-------------|
-| **Autonomous Daily Pipeline** | Runs every day at 7 AM UTC via GitHub Actions |
-| **Multi-Source Fetching** | Pulls from arXiv + Semantic Scholar simultaneously |
-| **Semantic Scoring** | Cosine similarity via all-MiniLM-L6-v2 embeddings |
-| **LLM Analysis** | Groq Llama3 extracts problem, method, results, limitations |
-| **Research Gap Detection** | AI identifies under-explored areas in your field |
-| **Explainability Engine** | Every recommendation shows exactly why it was chosen |
-| **Human Escalation** | Uncertain papers routed to a review queue |
-| **Daily Digest** | AI-written summary of each day's findings |
+| **Autonomous Agent** | Generates its own search terms from your profile and runs daily via GitHub Actions |
+| **Multi-Source Fetching** | Pulls from **arXiv** + **OpenAlex** simultaneously |
+| **4-Signal Scoring** | Embeddings (40%), LLM Judgment (25%), Keywords (20%), Recency (15%) |
+| **LLM Deep Analysis** | Groq Llama 3.1 8B extracts problem, method, results, and limitations |
+| **Research Gap Detection** | AI identifies under-explored areas, trends, and hot topics in your weekly corpus |
+| **Human Escalation** | Ambiguous or conflicting papers are routed to a review queue for your judgment |
+| **Daily Digest** | Personalized AI-written summary of each day's discoveries |
+| **Progressive UI** | Glassmorphic frontend with an interactive onboarding tour and real-time agent progress tracking |
 
 ---
 
@@ -31,19 +31,20 @@
 research-paper-agent/
 ├── frontend/          # React + Vite + TailwindCSS
 │   └── src/
-│       ├── pages/     # Dashboard, Papers, ResearchGaps, Escalations, Settings
-│       ├── components/
-│       └── api/
+│       ├── pages/     # LandingPage, Dashboard, Papers, ResearchGaps, Escalations, Settings
+│       ├── components/# Layouts, Modals, Cards
+│       └── api/       # Axios client
 ├── backend/           # FastAPI + LangChain
 │   └── app/
-│       ├── agent/     # Orchestrator + 6 LangChain tools
+│       ├── agent/     # Orchestrator + 6 LangChain tools + Prompts
 │       ├── routers/   # REST API endpoints
-│       └── services/  # arXiv, Semantic Scholar, Embeddings
+│       └── services/  # arXiv, OpenAlex, Embeddings
 ├── supabase/
-│   └── schema.sql     # Full DB schema with pgvector
+│   └── schema.sql     # Full DB schema with pgvector and user profiles
 └── .github/
     └── workflows/
-        └── daily_agent.yml
+        ├── daily_agent.yml      # Cron job calling /agent/run-all
+        └── deploy-backend.yml   # Syncs backend to Hugging Face Space
 ```
 
 ---
@@ -63,14 +64,14 @@ cd backend
 
 # Create and activate virtual environment
 python -m venv venv
-venv\Scripts\activate   # Windows
+venv\Scripts\activate    # Windows
 source venv/bin/activate # macOS/Linux
 
 # Install dependencies
 pip install -r requirements.txt
 
 # Configure environment
-copy .env.example .env
+cp .env.example .env
 # Edit .env with your Supabase URL, service key, and Groq API key
 
 # Run the API
@@ -85,7 +86,8 @@ cd frontend
 # Create env file
 echo "VITE_API_URL=http://localhost:8000" > .env.local
 
-# Run dev server
+# Install and run dev server
+npm install
 npm run dev
 ```
 
@@ -102,96 +104,94 @@ Open `http://localhost:5173`
 | `SUPABASE_URL` | Your Supabase project URL |
 | `SUPABASE_SERVICE_KEY` | Service role key (from Project Settings > API) |
 | `GROQ_API_KEY` | From [console.groq.com](https://console.groq.com) |
+| `JWT_SECRET_KEY` | Secure random string for auth tokens |
 | `DAILY_AGENT_SECRET` | A secret string for GitHub Actions to authenticate |
-| `MAX_PAPERS_PER_RUN` | Max papers to fetch per run (default: 200) |
-| `ARXIV_QUERY_TERMS` | Comma-separated search terms |
-| `ARXIV_CATEGORIES` | Comma-separated arXiv categories |
+| `MAX_PAPERS_PER_RUN` | Max papers to fetch per run (default: 20) |
 
 ### Frontend `.env.local`
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_API_URL` | Backend URL (e.g. `https://your-backend.onrender.com`) |
+| `VITE_API_URL` | Backend URL (e.g., `http://localhost:8000` or hosted URL) |
 
 ---
 
 ## 🔁 Agent Pipeline
 
+The pipeline can be triggered in two ways:
+1. **User Triggered**: `POST /agent/run` (loads only the active user's profile, takes ~2 mins).
+2. **Scheduled**: `POST /agent/run-all` (triggered by GitHub Actions at 7 AM UTC for all profiles).
+
 ```
-GitHub Actions (7 AM UTC)
+Pipeline Steps
         │
-        ▼
-POST /agent/run
-        │
-        ├─ Step 1: Fetch Papers (arXiv + Semantic Scholar)
-        ├─ Step 2: Generate Embeddings (all-MiniLM-L6-v2)
-        ├─ Step 3: Score & Classify (Cosine + Keyword + Recency)
-        ├─ Step 4: LLM Analysis (Groq Llama3-8b)
-        ├─ Step 5: Research Gap Detection
-        ├─ Step 6: Escalation Queue Update
-        └─ Step 7: Generate Daily Digest
+        ├─ Step 1: Load Profiles
+        ├─ Step 2: Fetch Papers (LLM generates query terms → arXiv & OpenAlex)
+        ├─ Step 3: Generate Embeddings (all-MiniLM-L6-v2)
+        ├─ Step 4: Score & Classify (Cosine + LLM + Keyword + Recency)
+        ├─ Step 5: Analyze highly relevant papers (Groq Llama 3.1 8B)
+        ├─ Step 6: Identify Research Gaps
+        ├─ Step 7: Flag Escalations
+        └─ Step 8: Generate Daily Digest
 ```
 
-### Scoring Formula
+### 4-Signal Scoring Formula
 
 ```
-Final Score = (Semantic Similarity × 0.50) + (Keyword Match × 0.30) + (Recency × 0.20)
+Final Score = (Semantic Similarity × 0.40) + (LLM Relevance × 0.25) + (Keyword Match × 0.20) + (Recency × 0.15)
 
-Classification:
-  ≥ 80  → Highly Relevant   (auto-analyzed by LLM)
-  50-79 → Potentially Relevant
-  < 50  → Ignored
+Classification Thresholds:
+  ≥ 68  → Highly Relevant   (auto-analyzed by LLM)
+  38-67 → Potentially Relevant
+  < 38  → Not Relevant
 
 Escalation Triggers:
-  - Score between 50-70 (uncertain range)
-  - High semantic + low keyword = conflicting signals
+  - Score falls between 50-70 (the "uncertain" boundary)
+  - Conflicting signals (e.g., extremely high cosine similarity but LLM says it's irrelevant)
 ```
 
 ---
 
 ## 🔌 API Reference
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/papers` | List scored papers (filter by category, source) |
-| `GET` | `/papers/{id}` | Paper details + analysis |
-| `GET` | `/profile` | Get user research profile |
-| `POST` | `/profile` | Create/replace profile |
-| `PUT` | `/profile` | Update profile |
-| `GET` | `/gaps` | Research gap reports |
-| `GET` | `/escalations` | Papers needing human review |
-| `POST` | `/escalations/{id}/decide` | Accept or reject a paper |
-| `GET` | `/digest/latest` | Latest daily digest |
-| `POST` | `/agent/run` | Trigger full pipeline |
-| `GET` | `/agent/status` | Recent run statuses |
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| `GET` | `/papers` | List scored papers | JWT |
+| `GET` | `/papers/{id}` | Paper details + analysis | JWT |
+| `GET` | `/profile` | Get user research profile | JWT |
+| `POST` | `/profile` | Create/replace profile | JWT |
+| `GET` | `/gaps` | Research gap reports | JWT |
+| `GET` | `/escalations` | Papers needing human review | JWT |
+| `POST` | `/escalations/{id}/decide` | Accept or reject an escalated paper | JWT |
+| `GET` | `/digest/latest` | Latest daily digest | JWT |
+| `POST` | `/agent/run` | Run pipeline for current user profile | JWT |
+| `POST` | `/agent/run-all` | Run pipeline for ALL users | `X-Agent-Secret` |
+| `GET` | `/agent/status` | Recent pipeline execution logs | JWT |
 
 ---
 
 ## 🚢 Deployment
 
-### Backend → Render
+### Backend → Hugging Face Spaces
+
+1. Create a Docker Space on [Hugging Face](https://huggingface.co)
+2. Add your GitHub repository's `HF_TOKEN` secret to GitHub Actions.
+3. The `.github/workflows/deploy-backend.yml` action will automatically sync the `backend/` directory to Hugging Face on push to main.
+
+### Frontend → Vercel or Netlify
 
 1. Push code to GitHub
-2. Create a new **Web Service** on [render.com](https://render.com)
-3. Set root directory to `backend`
-4. Build command: `pip install -r requirements.txt`
-5. Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-6. Add all environment variables
-
-### Frontend → Vercel
-
-1. Push code to GitHub
-2. Import project in [vercel.com](https://vercel.com)
+2. Import project in [Vercel](https://vercel.com) or Netlify.
 3. Set root directory to `frontend`
-4. Add `VITE_API_URL` pointing to your Render backend URL
+4. Add `VITE_API_URL` pointing to your Hugging Face Space URL.
 
-### GitHub Actions
+### GitHub Actions (Daily Agent)
 
 In your repository **Settings > Secrets**, add:
 
 | Secret | Value |
 |--------|-------|
-| `BACKEND_URL` | Your Render backend URL |
+| `BACKEND_URL` | Your Hugging Face Space URL (e.g., `https://muahmad123-research-ai.hf.space`) |
 | `DAILY_AGENT_SECRET` | Same value as in backend `.env` |
 
 ---
@@ -200,12 +200,12 @@ In your repository **Settings > Secrets**, add:
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18, Vite, TailwindCSS 3, React Query, Zustand |
+| Frontend | React 18, Vite, TailwindCSS 3, React Query v5, Zustand, Lucide React |
 | Backend | FastAPI, LangChain, Pydantic v2 |
 | Database | Supabase (PostgreSQL + pgvector) |
-| LLM | Groq API (Llama3-8b-8192) |
+| LLM | Groq API (llama-3.1-8b-instant) |
 | Embeddings | sentence-transformers/all-MiniLM-L6-v2 |
-| Automation | GitHub Actions (cron) |
+| Automation | GitHub Actions |
 
 ---
 
