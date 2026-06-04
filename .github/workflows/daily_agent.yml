@@ -26,8 +26,6 @@ jobs:
           fi
           echo "✅ Agent triggered successfully for all users"
 
-      - name: Wait and Check Status
+      - name: Confirm backend is alive
         run: |
-          sleep 30
-          curl -s "${{ secrets.BACKEND_URL }}/agent/status" \
-            -H "X-Agent-Secret: ${{ secrets.DAILY_AGENT_SECRET }}" | python3 -m json.tool || true
+          curl -sf "${{ secrets.BACKEND_URL }}/health" || echo "Health check failed (non-fatal)"
