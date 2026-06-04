@@ -5,7 +5,8 @@ import {
   Zap, FileText, TrendingUp, AlertTriangle, BookOpen, CheckCircle2
 } from 'lucide-react'
 
-const STORAGE_KEY = 'paperagent-onboarding-done'
+const STORAGE_KEY      = 'paperagent-onboarding-done'
+const SLIDE_KEY        = 'paperagent-onboarding-slide'
 
 const SLIDES = [
   {
@@ -79,23 +80,37 @@ const SLIDES = [
 export default function OnboardingModal() {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [slide, setSlide] = useState(0)
+  // Restore slide position if user previously navigated away mid-tour
+  const [slide, setSlide] = useState(
+    () => parseInt(localStorage.getItem(SLIDE_KEY) || '0', 10)
+  )
 
   useEffect(() => {
     if (!localStorage.getItem(STORAGE_KEY)) {
-      // Small delay so the dashboard has time to render first
       const t = setTimeout(() => setOpen(true), 600)
       return () => clearTimeout(t)
     }
   }, [])
 
+  // Persist slide position whenever it changes (so navigating away and back resumes here)
+  useEffect(() => {
+    localStorage.setItem(SLIDE_KEY, String(slide))
+  }, [slide])
+
+  // Permanently dismiss — marks tour as done, clears saved slide
   function dismiss() {
     localStorage.setItem(STORAGE_KEY, '1')
+    localStorage.removeItem(SLIDE_KEY)
     setOpen(false)
   }
 
-  function handleAction(route) {
-    dismiss()
+  // Temporary close for navigation buttons — does NOT mark tour as done
+  // Advances to the next slide so returning from Settings shows the next step
+  function navigateAway(route) {
+    const nextSlide = Math.min(slide + 1, SLIDES.length - 1)
+    localStorage.setItem(SLIDE_KEY, String(nextSlide))
+    setSlide(nextSlide)
+    setOpen(false)
     navigate(route)
   }
 
@@ -182,7 +197,7 @@ export default function OnboardingModal() {
 
             {current.action ? (
               <button
-                onClick={() => handleAction(current.action.route)}
+                onClick={() => navigateAway(current.action.route)}
                 className="btn-primary flex-1 justify-center"
                 style={{ background: current.bg }}
               >
