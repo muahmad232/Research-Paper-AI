@@ -35,11 +35,11 @@ function parseStepFromLog(log) {
 
 export default function Header({ title, subtitle }) {
   const queryClient = useQueryClient()
-  const pollingRef  = useRef(null)
-  const [expanded, setExpanded]       = useState(false)
+  const pollingRef      = useRef(null)
+  const hasSeenRunning  = useRef(false)    // true once we observe 'running' for the current trigger
+  const [expanded, setExpanded]         = useState(false)
   const [justFinished, setJustFinished] = useState(false)
-  // Track whether WE started this run (so we own the polling/refresh cycle)
-  const [isOurRun, setIsOurRun] = useState(false)
+  const [isOurRun, setIsOurRun]         = useState(false)
 
   // ── Agent status query ─────────────────────────────────────────────────────
   // NOTE: React Query v5 changed refetchInterval — the callback receives a Query
@@ -55,6 +55,7 @@ export default function Header({ title, subtitle }) {
     mutationFn: () => agentApi.trigger(),
     onSuccess: () => {
       setIsOurRun(true)
+      hasSeenRunning.current = false   // reset — wait for 'running' before watching for done
       setExpanded(true)
       setJustFinished(false)
       toast.success('🤖 Agent pipeline started!', {
@@ -72,44 +73,56 @@ export default function Header({ title, subtitle }) {
   })
 
   // ── Watch for completion and refresh all page data ─────────────────────────
-  const prevStatus = useRef(null)
+  // Dashboard query keys — must stay in sync with Dashboard.jsx useQuery calls
+  const DASHBOARD_KEYS = [
+    ['papers', 'highly_relevant'],
+    ['digest-latest'],
+    ['escalations'],
+    ['gaps'],
+  ]
+
   useEffect(() => {
     const status = agentStatus?.runs?.[0]?.status
     if (!isOurRun) return
 
+    // Step 1: wait until we've confirmed the new run is actually running
+    if (status === 'running') {
+      hasSeenRunning.current = true
+      return
+    }
+
+    // Step 2: only fire completion once we've seen 'running' (avoids false-positive
+    // from the previous run's 'completed' status being present on first render)
+    if (!hasSeenRunning.current) return
+
     if (status === 'completed' || status === 'failed') {
-      // Only fire once per transition (running → done)
-      if (prevStatus.current === 'running' || prevStatus.current === null) {
-        setIsOurRun(false)
-        setJustFinished(true)
+      hasSeenRunning.current = false
+      setIsOurRun(false)
+      setJustFinished(true)
 
-        // Step 1: immediately mark ALL cache entries as stale
-        // (bypasses staleTime:60s — without this, fresh queries won't refetch)
-        queryClient.invalidateQueries()
+      // Invalidate the specific keys the Dashboard uses so staleTime is bypassed
+      DASHBOARD_KEYS.forEach(key => queryClient.invalidateQueries({ queryKey: key }))
 
-        // Step 2: wait 1.5s for the backend DB writes to fully flush,
-        // then force-refetch every active query so the page updates live
+      // Give Supabase 2s to flush all writes, then explicitly refetch each key
+      setTimeout(() => {
+        DASHBOARD_KEYS.forEach(key => queryClient.refetchQueries({ queryKey: key }))
+      }, 2000)
+
+      if (status === 'completed') {
+        const n = agentStatus.runs[0].papers_fetched ?? 0
+        toast.success(`✅ Pipeline complete — ${n} papers fetched`, {
+          style: { background: '#1e1e35', color: '#fff' },
+        })
         setTimeout(() => {
-          queryClient.refetchQueries({ type: 'active' })
-        }, 1500)
-
-        if (status === 'completed') {
-          const n = agentStatus.runs[0].papers_fetched ?? 0
-          toast.success(`✅ Pipeline complete — ${n} papers fetched`, {
-            style: { background: '#1e1e35', color: '#fff' },
-          })
-          setTimeout(() => {
-            setExpanded(false)
-            setJustFinished(false)
-          }, 5000)
-        } else {
-          toast.error('Agent run failed. Check server logs.', {
-            style: { background: '#1e1e35', color: '#fff' },
-          })
-        }
+          setExpanded(false)
+          setJustFinished(false)
+        }, 5000)
+      } else {
+        toast.error('Agent run failed. Check server logs.', {
+          style: { background: '#1e1e35', color: '#fff' },
+        })
       }
     }
-    prevStatus.current = status ?? null
   }, [agentStatus, isOurRun, queryClient])
 
   // Cleanup on unmount
