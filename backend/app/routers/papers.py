@@ -18,6 +18,7 @@ router = APIRouter(prefix="/papers", tags=["papers"])
 def list_papers(
     category: Optional[str] = Query(None, description="Filter by category: highly_relevant, potentially_relevant"),
     source: Optional[str] = Query(None, description="Filter by source: arxiv, semantic_scholar"),
+    sort_by: Optional[str] = Query("score", description="Sort order: 'score' or 'date'"),
     limit: int = Query(20, le=100),
     offset: int = Query(0),
     current_user: dict = Depends(get_current_user),
@@ -27,7 +28,7 @@ def list_papers(
     user_id = current_user["sub"]
 
     try:
-        # Get this user's profile
+        # Get this user's profile — ensures all data is scoped to the calling user only
         profile_resp = db.table("user_profiles").select("id").eq("user_id", user_id).execute()
         if not profile_resp.data:
             return {"papers": [], "total": 0, "has_profile": False}
@@ -39,13 +40,15 @@ def list_papers(
                 "id, paper_id, final_score, category, explanation, analysis, escalated, user_decision, created_at, "
                 "papers(id, external_id, source, title, abstract, authors, categories, published_at, url)"
             )
-            .eq("profile_id", profile_id)
+            .eq("profile_id", profile_id)  # ← user isolation enforced here
         )
 
         if category and category != "all":
             query = query.eq("category", category)
 
-        result = query.order("final_score", desc=True).range(offset, offset + limit - 1).execute()
+        # Sort by relevance score (default) or date added to the system
+        order_column = "created_at" if sort_by == "date" else "final_score"
+        result = query.order(order_column, desc=True).range(offset, offset + limit - 1).execute()
 
         papers = result.data or []
 
@@ -142,7 +145,7 @@ def analyze_paper_manual(
 
         # Run LLM
         prompt = PAPER_ANALYSIS_PROMPT.format(title=paper["title"], abstract=paper["abstract"][:3000])
-        llm = ChatGroq(api_key=settings.groq_api_key, model_name="llama-3.1-8b-instant", temperature=0.1)
+        llm = ChatGroq(api_key=settings.groq_api_key, model_name="openai/gpt-oss-20b", temperature=0.1)
         response = llm.invoke([HumanMessage(content=prompt)])
         content = response.content.strip()
 

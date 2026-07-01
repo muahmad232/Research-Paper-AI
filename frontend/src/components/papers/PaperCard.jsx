@@ -9,18 +9,18 @@ export default function PaperCard({ rec, onClick }) {
   const isEscalated = rec.escalated
 
   const categoryBadge = {
-    highly_relevant: 'badge-highly-relevant',
+    highly_relevant:      'badge-highly-relevant',
     potentially_relevant: 'badge-potentially-relevant',
   }[category] || 'badge-potentially-relevant'
 
   const categoryLabel = {
-    highly_relevant: '✦ Highly Relevant',
+    highly_relevant:      '✦ Highly Relevant',
     potentially_relevant: '◈ Potentially Relevant',
   }[category] || 'Relevant'
 
   return (
     <article
-      className="glass-hover rounded-2xl p-5 cursor-pointer animate-slide-in"
+      className="glass-hover rounded-xl p-5 cursor-pointer animate-slide-in"
       onClick={() => onClick?.(rec)}
     >
       {/* Header row */}
@@ -34,19 +34,19 @@ export default function PaperCard({ rec, onClick }) {
             </span>
           )}
           {paper.source && (
-            <span className="badge bg-surface-500/80 text-gray-400 border border-white/5">
+            <span className="badge bg-gray-100 text-gray-600 border border-gray-200">
               {paper.source === 'arxiv' ? 'arXiv' : 'OpenAlex'}
             </span>
           )}
         </div>
         <div className="flex items-center gap-1.5 text-gray-500 shrink-0">
-          <TrendingUp size={13} />
-          <span className="text-sm font-bold gradient-text">{Math.round(score)}</span>
+          <TrendingUp size={13} className="text-brand-600" />
+          <span className="text-sm font-bold text-brand-600">{Math.round(score)}</span>
         </div>
       </div>
 
       {/* Title */}
-      <h3 className="text-sm font-semibold text-gray-100 leading-snug mb-2 line-clamp-2">
+      <h3 className="text-sm font-semibold text-gray-900 leading-snug mb-2 line-clamp-2">
         {paper.title}
       </h3>
 
@@ -56,7 +56,7 @@ export default function PaperCard({ rec, onClick }) {
       </p>
 
       {/* Meta */}
-      <div className="flex items-center gap-4 text-xs text-gray-600 mb-3">
+      <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">
         {paper.authors?.length > 0 && (
           <div className="flex items-center gap-1">
             <Users size={11} />
@@ -75,7 +75,7 @@ export default function PaperCard({ rec, onClick }) {
       {paper.categories?.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {paper.categories.slice(0, 3).map(cat => (
-            <span key={cat} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-surface-600 text-gray-500 border border-white/5">
+            <span key={cat} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-gray-100 text-gray-500 border border-gray-200">
               <Tag size={8} />
               {cat}
             </span>
@@ -90,7 +90,7 @@ export default function PaperCard({ rec, onClick }) {
       {explanation.matched_keywords?.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {explanation.matched_keywords.slice(0, 4).map(kw => (
-            <span key={kw} className="text-[10px] px-2 py-0.5 rounded-full bg-brand-600/15 text-brand-400 border border-brand-500/20">
+            <span key={kw} className="text-[10px] px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 border border-brand-200">
               {kw}
             </span>
           ))}
@@ -99,13 +99,13 @@ export default function PaperCard({ rec, onClick }) {
 
       {/* Link */}
       {paper.url && (
-        <div className="mt-3 pt-3 border-t border-white/5">
+        <div className="mt-3 pt-3 border-t border-gray-100">
           <a
             href={paper.url}
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-700 font-medium transition-colors"
           >
             <ExternalLink size={11} />
             View Paper

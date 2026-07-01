@@ -67,52 +67,73 @@ IMPORTANT RULES:
 - Always refer to the current date as {current_date}.
 """
 
-GENERATE_SEARCH_QUERY_PROMPT = """You are an expert research librarian. Your task is to formulate a highly targeted search query to find the most relevant recent research papers for a user based on their profile.
+GENERATE_SEARCH_QUERY_PROMPT = """You are an expert research librarian specialising in academic literature search. Your task is to formulate highly targeted, specific search queries to retrieve the most relevant recent research papers for a researcher.
 
-User Research Interests:
+Researcher Profile
+==================
+Research Interests:
 {interests}
 
-User Keywords:
+Keywords / Jargon:
 {keywords}
 
+Topics to EXCLUDE (do NOT use these as query terms and avoid papers about them):
+{excluded}
+
 Available arXiv Categories:
-- cs.AI (Artificial Intelligence)
-- cs.CL (Computation and Language / NLP)
-- cs.CV (Computer Vision)
-- cs.LG (Machine Learning)
-- cs.CR (Cryptography and Security)
-- cs.RO (Robotics)
-- cs.SE (Software Engineering)
-- cs.HC (Human-Computer Interaction)
+- cs.AI  (Artificial Intelligence)
+- cs.CL  (Computation and Language / NLP)
+- cs.CV  (Computer Vision and Pattern Recognition)
+- cs.LG  (Machine Learning)
+- cs.IR  (Information Retrieval)
+- cs.NE  (Neural and Evolutionary Computing)
+- cs.CR  (Cryptography and Security)
+- cs.RO  (Robotics)
+- cs.SE  (Software Engineering)
+- cs.HC  (Human-Computer Interaction)
+- cs.DB  (Databases and Information Systems)
 - stat.ML (Machine Learning - Statistics)
 - math.OC (Optimization and Control)
 - eess.SY (Systems and Control)
 - q-bio.QM (Quantitative Methods in Biology)
 - q-fin.CP (Computational Finance)
 
-Based on the user's profile, select EXACTLY 3 highly relevant arXiv categories from the list above, and formulate EXACTLY 3 specific query terms (can be short phrases, acronyms, or single words) that will yield the best search results across databases.
+Instructions
+============
+1. Select EXACTLY 5 arXiv categories that best match the researcher's interests (ordered by relevance).
+2. Generate EXACTLY 5 query terms. Each term must be:
+   - A specific multi-word phrase (2-4 words preferred) or a precise technical acronym
+   - Directly derived from the researcher's interests and keywords
+   - Different enough from each other to broaden coverage without overlap
+   - NOT about any excluded topic
+3. Think carefully — vague single-word terms like "learning" or "model" produce irrelevant results.
 
-Output EXACTLY and ONLY a JSON object in this format:
+Examples of GOOD query terms: "retrieval augmented generation", "parameter efficient fine-tuning", "federated learning privacy", "vision language model alignment"
+Examples of BAD query terms: "machine learning", "neural network", "model", "training"
+
+Output EXACTLY and ONLY a valid JSON object (no markdown, no explanation):
 {{
-  "query_terms": ["term1", "term2", "term3"],
-  "categories": ["cs.AI", "cs.LG", "stat.ML"]
+  "query_terms": ["specific phrase 1", "specific phrase 2", "specific phrase 3", "specific phrase 4", "specific phrase 5"],
+  "categories": ["cs.XX", "cs.YY", "cs.ZZ", "cs.AA", "cs.BB"]
 }}
 """
 
-LLM_RELEVANCE_SCORE_PROMPT = """You are a research relevance judge. Score each paper's relevance to the researcher's profile on a scale of 0-100.
+LLM_RELEVANCE_SCORE_PROMPT = """You are a strict research relevance judge. Score each paper's relevance to the researcher's profile on a scale of 0-100.
 
 Researcher Profile:
 {profile_text}
 
-Papers to score:
+Papers to score (title + first 500 chars of abstract):
 {papers_list}
 
-Rules:
-- 85-100: Directly addresses the researcher's core topics
-- 60-84: Closely related, would be useful
-- 35-59: Tangentially related
-- 0-34: Not relevant
+Scoring criteria:
+- 85-100: Directly addresses the researcher's core topics, methodology, or research questions
+- 60-84: Closely related work the researcher would find valuable and cite
+- 35-59: Tangentially related — overlapping methods or adjacent domain
+- 0-34: Not relevant to this researcher's interests
 
-Return ONLY a JSON array, one object per paper, in order:
+Be strict and precise. A paper about a general topic (e.g. "image classification") should score low if the researcher focuses on a specific sub-area (e.g. "medical image segmentation with limited labels").
+
+Return ONLY a JSON array, one object per paper, in the same order:
 [{{"idx": 0, "score": 72}}, {{"idx": 1, "score": 45}}, ...]
-No other text."""
+No markdown, no other text."""

@@ -2,49 +2,49 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import {
   Brain, Zap, Shield, TrendingUp, BookOpen, AlertTriangle,
-  ArrowRight, Sparkles, FileText, Search, BarChart3
+  ArrowRight, Search, FileText, BarChart3
 } from 'lucide-react'
 
 const FEATURES = [
   {
     icon: Search,
-    color: '#818cf8',
-    bg: 'rgba(99,102,241,0.12)',
+    color: '#2563EB',
+    bg: '#EFF6FF',
     title: 'Smart Discovery',
     desc: 'LLM-generated search queries fetch papers from arXiv and OpenAlex tailored to your exact research profile.',
   },
   {
     icon: BarChart3,
-    color: '#34d399',
-    bg: 'rgba(52,211,153,0.12)',
+    color: '#16a34a',
+    bg: '#F0FDF4',
     title: '4-Signal Scoring',
     desc: 'Every paper is scored on semantic similarity, LLM relevance judgment, keyword matching, and publication recency.',
   },
   {
     icon: Brain,
-    color: '#c084fc',
-    bg: 'rgba(192,132,252,0.12)',
+    color: '#7C3AED',
+    bg: '#F5F3FF',
     title: 'Deep Analysis',
     desc: 'Highly relevant papers are automatically parsed for problem, method, dataset, results, and limitations.',
   },
   {
     icon: TrendingUp,
-    color: '#38bdf8',
-    bg: 'rgba(56,189,248,0.12)',
+    color: '#0284C7',
+    bg: '#F0F9FF',
     title: 'Gap Detection',
     desc: 'The agent identifies research gaps, emerging trends, and hot topics across your weekly paper corpus.',
   },
   {
     icon: AlertTriangle,
-    color: '#fbbf24',
-    bg: 'rgba(251,191,36,0.12)',
+    color: '#D97706',
+    bg: '#FFFBEB',
     title: 'Smart Escalation',
     desc: 'Papers with conflicting signals are flagged for your review — accept or reject with one click.',
   },
   {
     icon: Zap,
-    color: '#f472b6',
-    bg: 'rgba(244,114,182,0.12)',
+    color: '#DB2777',
+    bg: '#FDF2F8',
     title: 'Daily Digest',
     desc: 'A personalised AI-written briefing lands on your dashboard every morning summarising what was found.',
   },
@@ -63,22 +63,20 @@ export default function LandingPage() {
   if (token) return <Navigate to="/dashboard" replace />
 
   return (
-    <div className="min-h-screen" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-white" style={{ fontFamily: '"IBM Plex Sans", Inter, sans-serif' }}>
 
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/5"
-        style={{ background: 'rgba(13,13,26,0.85)', backdropFilter: 'blur(20px)' }}>
+      <nav className="fixed top-0 inset-x-0 z-50 bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg,#6366f1,#a78bfa)' }}>
-              <Brain size={16} className="text-white" />
+            <div className="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center">
+              <BookOpen size={15} className="text-white" />
             </div>
-            <span className="text-sm font-bold text-white">PaperAgent</span>
+            <span className="text-sm font-bold text-gray-900">PaperAgent</span>
           </div>
           <div className="flex items-center gap-3">
             <Link to="/login"
-              className="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2">
+              className="text-sm text-gray-600 hover:text-gray-900 transition-colors px-4 py-2">
               Sign in
             </Link>
             <Link to="/register"
@@ -90,37 +88,28 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ────────────────────────────────────────────────────────── */}
-      <section className="pt-40 pb-28 px-6 text-center relative overflow-hidden">
-        {/* Background orbs */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-20 left-1/4 w-96 h-96 rounded-full opacity-20"
-            style={{ background: 'radial-gradient(circle,#6366f1,transparent 70%)', filter: 'blur(60px)' }} />
-          <div className="absolute top-32 right-1/4 w-72 h-72 rounded-full opacity-15"
-            style={{ background: 'radial-gradient(circle,#a78bfa,transparent 70%)', filter: 'blur(60px)' }} />
-        </div>
-
-        <div className="relative max-w-4xl mx-auto">
+      <section className="pt-40 pb-28 px-6 text-center bg-gray-50 border-b border-gray-200">
+        <div className="max-w-4xl mx-auto">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8 border"
-            style={{ background: 'rgba(99,102,241,0.12)', borderColor: 'rgba(99,102,241,0.3)', color: '#a5b4fc' }}>
-            <Sparkles size={11} />
-            Powered by Groq · arXiv · OpenAlex
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-medium mb-8 bg-brand-50 border border-brand-200 text-brand-600">
+            <Search size={11} />
+            arXiv · OpenAlex · Groq · Sentence Transformers
           </div>
 
-          <h1 className="text-5xl sm:text-6xl font-extrabold text-white leading-tight mb-6 text-balance">
+          <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 leading-tight mb-6 text-balance tracking-tight">
             Your autonomous{' '}
-            <span className="gradient-text">research paper</span>{' '}
+            <span style={{ color: '#1E3A5F' }}>research paper</span>{' '}
             scout
           </h1>
 
-          <p className="text-lg text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-10 leading-relaxed">
             PaperAgent discovers, screens, and analyses research papers daily — so you spend
             your time reading what matters, not searching for it.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/register"
-              className="btn-primary px-6 py-3 text-base glow-brand">
+              className="btn-primary px-6 py-3 text-base">
               Start for free <ArrowRight size={16} />
             </Link>
             <Link to="/login"
@@ -134,10 +123,10 @@ export default function LandingPage() {
             {[
               { val: '2 sources', label: 'arXiv + OpenAlex' },
               { val: '4 signals', label: 'Per-paper scoring' },
-              { val: '7 AM', label: 'Daily auto-run' },
+              { val: '7 AM',     label: 'Daily auto-run' },
             ].map(s => (
               <div key={s.label} className="text-center">
-                <p className="text-2xl font-bold gradient-text">{s.val}</p>
+                <p className="text-2xl font-bold text-brand-600">{s.val}</p>
                 <p className="text-xs text-gray-500 mt-1">{s.label}</p>
               </div>
             ))}
@@ -146,25 +135,25 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features Grid ───────────────────────────────────────────────── */}
-      <section className="py-20 px-6">
+      <section className="py-20 px-6 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-white mb-3">Everything automated</h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
+            <h2 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">Everything automated</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">
               From fetching to analysis to digest — the full pipeline runs without you lifting a finger.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map(f => (
-              <div key={f.title} className="glass rounded-2xl p-6 hover:border-white/10 transition-all duration-300 group"
-                style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110"
+              <div key={f.title}
+                className="bg-white border border-gray-200 rounded-xl p-6 hover:border-gray-300 hover:shadow-md transition-all duration-200 group">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-4"
                   style={{ background: f.bg }}>
                   <f.icon size={18} style={{ color: f.color }} />
                 </div>
-                <h3 className="text-sm font-semibold text-white mb-2">{f.title}</h3>
-                <p className="text-xs text-gray-400 leading-relaxed">{f.desc}</p>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2">{f.title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -172,21 +161,21 @@ export default function LandingPage() {
       </section>
 
       {/* ── How it works ────────────────────────────────────────────────── */}
-      <section className="py-20 px-6">
+      <section className="py-20 px-6 bg-gray-50 border-y border-gray-200">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-white mb-3">Up and running in minutes</h2>
-            <p className="text-gray-400">Three steps, then it runs itself.</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">Up and running in minutes</h2>
+            <p className="text-gray-500">Three steps, then it runs itself.</p>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             {STEPS.map((step, i) => (
-              <div key={step.n} className="glass rounded-2xl p-6 flex items-start gap-5"
-                style={{ borderColor: 'rgba(99,102,241,0.15)' }}>
-                <span className="text-3xl font-extrabold shrink-0 gradient-text leading-none">{step.n}</span>
+              <div key={step.n}
+                className="bg-white border border-gray-200 rounded-xl p-6 flex items-start gap-5 hover:border-brand-200 transition-colors">
+                <span className="text-3xl font-bold shrink-0 leading-none" style={{ color: '#1E3A5F' }}>{step.n}</span>
                 <div>
-                  <h3 className="text-sm font-semibold text-white mb-1">{step.label}</h3>
-                  <p className="text-xs text-gray-400 leading-relaxed">{step.desc}</p>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">{step.label}</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">{step.desc}</p>
                 </div>
               </div>
             ))}
@@ -195,37 +184,30 @@ export default function LandingPage() {
       </section>
 
       {/* ── CTA ─────────────────────────────────────────────────────────── */}
-      <section className="py-24 px-6">
+      <section className="py-24 px-6 bg-brand-600">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="glass rounded-3xl p-12 relative overflow-hidden"
-            style={{ borderColor: 'rgba(99,102,241,0.2)' }}>
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ background: 'radial-gradient(circle at 50% 0%,rgba(99,102,241,0.08),transparent 70%)' }} />
-            <div className="relative">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6 glow-brand"
-                style={{ background: 'linear-gradient(135deg,#6366f1,#a78bfa)' }}>
-                <FileText size={24} className="text-white" />
-              </div>
-              <h2 className="text-3xl font-bold text-white mb-4">
-                Stop searching. Start reading.
-              </h2>
-              <p className="text-gray-400 mb-8 leading-relaxed">
-                Create a free account, set your research profile, and let the agent handle discovery.
-              </p>
-              <Link to="/register" className="btn-primary px-8 py-3 text-base glow-brand">
-                Create free account <ArrowRight size={16} />
-              </Link>
-              <p className="text-xs text-gray-500 mt-4">No credit card needed · Guest mode available</p>
-            </div>
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-6 bg-white/15">
+            <FileText size={24} className="text-white" />
           </div>
+          <h2 className="text-3xl font-bold text-white mb-4 tracking-tight">
+            Stop searching. Start reading.
+          </h2>
+          <p className="text-blue-200 mb-8 leading-relaxed">
+            Create a free account, set your research profile, and let the agent handle discovery.
+          </p>
+          <Link to="/register"
+            className="inline-flex items-center gap-2 px-8 py-3 rounded-lg text-sm font-semibold bg-white text-brand-600 hover:bg-gray-50 transition-colors">
+            Create free account <ArrowRight size={16} />
+          </Link>
+          <p className="text-xs text-blue-300 mt-4">No credit card needed · Guest mode available</p>
         </div>
       </section>
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
-      <footer className="border-t border-white/5 py-8 px-6 text-center text-xs text-gray-500">
+      <footer className="border-t border-gray-200 bg-white py-8 px-6 text-center text-xs text-gray-500">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <Brain size={12} className="text-brand-400" />
-          <span className="font-semibold text-gray-400">PaperAgent</span>
+          <BookOpen size={12} className="text-brand-600" />
+          <span className="font-semibold text-gray-700">PaperAgent</span>
         </div>
         Built with FastAPI · React · Supabase · Groq
       </footer>

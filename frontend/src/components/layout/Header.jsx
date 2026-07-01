@@ -42,12 +42,9 @@ export default function Header({ title, subtitle }) {
   const [isOurRun, setIsOurRun]         = useState(false)
 
   // ── Agent status query ─────────────────────────────────────────────────────
-  // NOTE: React Query v5 changed refetchInterval — the callback receives a Query
-  // object, not data. We drive polling manually via setInterval instead.
   const { data: agentStatus } = useQuery({
     queryKey: ['agent-status'],
     queryFn: agentApi.status,
-    // Always refetch every 3s while we own an active run; 30s otherwise
     refetchInterval: isOurRun ? 3000 : 30000,
   })
 
@@ -55,25 +52,22 @@ export default function Header({ title, subtitle }) {
     mutationFn: () => agentApi.trigger(),
     onSuccess: () => {
       setIsOurRun(true)
-      hasSeenRunning.current = false   // reset — wait for 'running' before watching for done
+      hasSeenRunning.current = false
       setExpanded(true)
       setJustFinished(false)
-      toast.success('🤖 Agent pipeline started!', {
-        style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
+      toast.success('Agent pipeline started', {
+        style: { background: '#ffffff', color: '#1F2937', border: '1px solid #E5E7EB' },
       })
-
-      // Force an immediate fetch so the running state appears right away
       queryClient.refetchQueries({ queryKey: ['agent-status'] })
     },
     onError: (err) => {
       toast.error(`Failed: ${err.message}`, {
-        style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(239,68,68,0.3)' },
+        style: { background: '#ffffff', color: '#1F2937', border: '1px solid #FCA5A5' },
       })
     },
   })
 
-  // ── Watch for completion and refresh all page data ─────────────────────────
-  // Dashboard query keys — must stay in sync with Dashboard.jsx useQuery calls
+  // ── Watch for completion ───────────────────────────────────────────────────
   const DASHBOARD_KEYS = [
     ['papers', 'highly_relevant'],
     ['digest-latest'],
@@ -85,14 +79,11 @@ export default function Header({ title, subtitle }) {
     const status = agentStatus?.runs?.[0]?.status
     if (!isOurRun) return
 
-    // Step 1: wait until we've confirmed the new run is actually running
     if (status === 'running') {
       hasSeenRunning.current = true
       return
     }
 
-    // Step 2: only fire completion once we've seen 'running' (avoids false-positive
-    // from the previous run's 'completed' status being present on first render)
     if (!hasSeenRunning.current) return
 
     if (status === 'completed' || status === 'failed') {
@@ -100,18 +91,16 @@ export default function Header({ title, subtitle }) {
       setIsOurRun(false)
       setJustFinished(true)
 
-      // Invalidate the specific keys the Dashboard uses so staleTime is bypassed
       DASHBOARD_KEYS.forEach(key => queryClient.invalidateQueries({ queryKey: key }))
 
-      // Give Supabase 2s to flush all writes, then explicitly refetch each key
       setTimeout(() => {
         DASHBOARD_KEYS.forEach(key => queryClient.refetchQueries({ queryKey: key }))
       }, 2000)
 
       if (status === 'completed') {
         const n = agentStatus.runs[0].papers_fetched ?? 0
-        toast.success(`✅ Pipeline complete — ${n} papers fetched`, {
-          style: { background: '#1e1e35', color: '#fff' },
+        toast.success(`Pipeline complete — ${n} papers fetched`, {
+          style: { background: '#ffffff', color: '#1F2937', border: '1px solid #E5E7EB' },
         })
         setTimeout(() => {
           setExpanded(false)
@@ -119,7 +108,7 @@ export default function Header({ title, subtitle }) {
         }, 5000)
       } else {
         toast.error('Agent run failed. Check server logs.', {
-          style: { background: '#1e1e35', color: '#fff' },
+          style: { background: '#ffffff', color: '#1F2937', border: '1px solid #FCA5A5' },
         })
       }
     }
@@ -139,11 +128,11 @@ export default function Header({ title, subtitle }) {
   const showPanel = isRunning || justFinished
 
   return (
-    <header className="border-b border-white/5">
+    <header className="bg-white border-b border-gray-200">
       {/* Main header row */}
       <div className="px-8 py-5 flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-white">{title}</h2>
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
           {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
         </div>
 
@@ -152,11 +141,11 @@ export default function Header({ title, subtitle }) {
           {lastRun && !showPanel && (
             <button
               onClick={() => setExpanded(e => !e)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-700 border border-white/5 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-200 text-xs text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
             >
               {isFailed
-                ? <XCircle size={12} className="text-rose-400" />
-                : <CheckCircle2 size={12} className="text-emerald-400" />}
+                ? <XCircle size={12} className="text-red-500" />
+                : <CheckCircle2 size={12} className="text-emerald-600" />}
               {isFailed
                 ? 'Last run failed'
                 : `Last: ${lastRun.papers_fetched ?? 0} papers`}
@@ -168,7 +157,7 @@ export default function Header({ title, subtitle }) {
             id="run-agent-btn"
             onClick={() => triggerAgent()}
             disabled={isRunning}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             title={isRunning ? 'Pipeline is already running' : 'Run agent pipeline'}
           >
             <RefreshCw size={14} className={isRunning ? 'animate-spin' : ''} />
@@ -180,27 +169,25 @@ export default function Header({ title, subtitle }) {
       {/* ── Progress Panel ─────────────────────────────────────────────────── */}
       {showPanel && (
         <div
-          className="mx-8 mb-4 rounded-2xl overflow-hidden border"
+          className="mx-8 mb-4 rounded-xl overflow-hidden border"
           style={{
-            background: 'rgba(30, 30, 53, 0.6)',
+            background: '#FFFFFF',
             borderColor: isRunning
-              ? 'rgba(99,102,241,0.25)'
+              ? '#BFDBFE'
               : justFinished
-              ? 'rgba(52,211,153,0.25)'
-              : 'rgba(239,68,68,0.25)',
-            backdropFilter: 'blur(12px)',
+              ? '#BBF7D0'
+              : '#FCA5A5',
           }}
         >
           {/* Progress bar track */}
-          <div className="w-full h-1 bg-white/5">
+          <div className="w-full h-1 bg-gray-100">
             <div
               className="h-full transition-all duration-700 ease-out"
               style={{
                 width: `${progress}%`,
                 background: justFinished
-                  ? 'linear-gradient(90deg, #34d399, #10b981)'
-                  : 'linear-gradient(90deg, #6366f1, #818cf8)',
-                boxShadow: isRunning ? '0 0 12px rgba(99,102,241,0.6)' : 'none',
+                  ? '#16a34a'
+                  : '#1E3A5F',
               }}
             />
           </div>
@@ -210,12 +197,12 @@ export default function Header({ title, subtitle }) {
               {/* Left: icon + step name */}
               <div className="flex items-center gap-2.5 min-w-0">
                 {isRunning
-                  ? <Loader2 size={14} className="text-brand-400 animate-spin shrink-0" />
+                  ? <Loader2 size={14} className="text-brand-600 animate-spin shrink-0" />
                   : justFinished
-                  ? <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                  : <XCircle size={14} className="text-rose-400 shrink-0" />}
+                  ? <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                  : <XCircle size={14} className="text-red-500 shrink-0" />}
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
                     {isRunning
                       ? stepLabel
                       : justFinished
@@ -246,10 +233,10 @@ export default function Header({ title, subtitle }) {
                           width:  active ? 20 : 6,
                           height: 6,
                           background: done
-                            ? (justFinished ? '#34d399' : '#6366f1')
+                            ? (justFinished ? '#16a34a' : '#1E3A5F')
                             : active
-                            ? '#818cf8'
-                            : 'rgba(255,255,255,0.1)',
+                            ? '#3B82F6'
+                            : '#E5E7EB',
                         }}
                       />
                     )
@@ -258,14 +245,14 @@ export default function Header({ title, subtitle }) {
 
                 <span
                   className="text-xs font-bold tabular-nums"
-                  style={{ color: justFinished ? '#34d399' : '#818cf8' }}
+                  style={{ color: justFinished ? '#16a34a' : '#1E3A5F' }}
                 >
                   {progress}%
                 </span>
 
                 <button
                   onClick={() => setExpanded(e => !e)}
-                  className="text-gray-500 hover:text-gray-300 transition-colors"
+                  className="text-gray-400 hover:text-gray-700 transition-colors"
                 >
                   {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </button>
@@ -274,7 +261,7 @@ export default function Header({ title, subtitle }) {
 
             {/* Expanded log lines */}
             {expanded && lastRun?.log && (
-              <div className="mt-3 pt-3 border-t border-white/5">
+              <div className="mt-3 pt-3 border-t border-gray-100">
                 <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
                   {lastRun.log
                     .split('\n')
@@ -285,7 +272,7 @@ export default function Header({ title, subtitle }) {
                         <p
                           key={i}
                           className="text-xs font-mono"
-                          style={{ color: isStep ? '#a5b4fc' : '#6b7280' }}
+                          style={{ color: isStep ? '#1E3A5F' : '#9CA3AF' }}
                         >
                           {line}
                         </p>

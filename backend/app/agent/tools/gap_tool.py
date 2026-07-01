@@ -69,7 +69,7 @@ def run_gap_tool(profile_id: str) -> Dict[str, Any]:
 
     llm = ChatGroq(
         api_key=settings.groq_api_key,
-        model_name="llama-3.1-8b-instant",
+        model_name="openai/gpt-oss-20b",
         temperature=0.3,
         max_tokens=1500,
     )

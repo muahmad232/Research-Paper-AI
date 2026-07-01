@@ -83,20 +83,20 @@ export default function Dashboard() {
 
         {/* Daily Digest Card */}
         {digest?.summary && (
-          <div className="glass rounded-2xl p-6 border border-brand-500/15">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl p-6">
             <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-brand-600/30 flex items-center justify-center">
-                <Sparkles size={14} className="text-brand-400" />
+              <div className="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Sparkles size={14} className="text-blue-700" />
               </div>
-              <h3 className="text-sm font-semibold text-white">Today's AI Digest</h3>
+              <h3 className="text-sm font-semibold text-blue-900">Today's Research Digest</h3>
               {digest.digest_date && (
-                <div className="flex items-center gap-1 text-xs text-gray-500 ml-auto">
+                <div className="flex items-center gap-1 text-xs text-blue-600 ml-auto">
                   <Calendar size={11} />
                   {digest.digest_date}
                 </div>
               )}
             </div>
-            <p className="text-sm text-gray-400 leading-relaxed">{renderMarkdown(digest.summary)}</p>
+            <p className="text-sm text-blue-800 leading-relaxed">{renderMarkdown(digest.summary)}</p>
           </div>
         )}
 
@@ -104,8 +104,8 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Zap size={16} className="text-brand-400" />
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Zap size={16} className="text-brand-600" />
                 Top Recommendations
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">Highest scoring papers from today's run</p>
@@ -123,7 +123,7 @@ export default function Dashboard() {
               icon={FileText}
               title="No papers yet"
               description="Run the agent to fetch and screen research papers based on your profile."
-              action={<p className="text-xs text-brand-400">Click "Run Agent" in the top bar to start</p>}
+              action={<p className="text-xs text-brand-600">Click "Run Agent" in the top bar to start</p>}
             />
           ) : (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -142,8 +142,8 @@ export default function Dashboard() {
         {gapsData?.gaps?.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <BookOpen size={16} className="text-cyan-400" />
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <BookOpen size={16} className="text-teal-600" />
                 Recent Research Gaps
               </h3>
               <Link to="/gaps" className="btn-secondary text-xs">
@@ -153,7 +153,7 @@ export default function Dashboard() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {gapsData.gaps.slice(0, 3).map(gap => (
-                <div key={gap.id} className="glass rounded-2xl p-4">
+                <div key={gap.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition-all">
                   <span className={`badge mb-2 ${
                     gap.trend_type === 'gap' ? 'badge-gap' :
                     gap.trend_type === 'emerging_trend' ? 'badge-trend' : 'badge-hot'
@@ -161,7 +161,7 @@ export default function Dashboard() {
                     {gap.trend_type === 'gap' ? '🔍 Research Gap' :
                      gap.trend_type === 'emerging_trend' ? '🌱 Emerging Trend' : '🔥 Hot Topic'}
                   </span>
-                  <h4 className="text-sm font-semibold text-white mb-1">{gap.gap_title}</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-1">{gap.gap_title}</h4>
                   <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{gap.description}</p>
                 </div>
               ))}

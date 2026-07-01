@@ -118,6 +118,9 @@ Open `http://localhost:5173`
 
 ## 🔁 Agent Pipeline
 
+> [!NOTE]
+> For an exhaustive, interview-ready engineering breakdown of the models, algorithms, data structures, and optimizations used in the agent pipeline, check out the [Agent Pipeline Deep-Dive](file:///e:/Projects/Research%20Papers%20AI/backend/app/agent/README.md).
+
 The pipeline can be triggered in two ways:
 1. **User Triggered**: `POST /agent/run` (loads only the active user's profile, takes ~2 mins).
 2. **Scheduled**: `POST /agent/run-all` (triggered by GitHub Actions at 7 AM UTC for all profiles).

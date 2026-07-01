@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -14,10 +14,7 @@
   }
 
   body {
-    @apply bg-surface-900 text-gray-100 font-sans antialiased;
-    background-image: radial-gradient(at 40% 20%, hsla(240,100%,74%,0.06) 0px, transparent 50%),
-                      radial-gradient(at 80% 0%, hsla(189,100%,56%,0.04) 0px, transparent 50%),
-                      radial-gradient(at 0% 80%, hsla(270,100%,60%,0.04) 0px, transparent 50%);
+    @apply bg-surface-900 text-gray-800 font-sans antialiased;
     min-height: 100vh;
   }
 
@@ -34,146 +31,142 @@
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-brand-600;
+    @apply bg-gray-400;
   }
 }
 
 @layer components {
-  /* Glass card effect */
+  /* ── Document card — replaces glassmorphism ─────────────────────────── */
   .glass {
-    background: rgba(30, 30, 53, 0.6);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   .glass-hover {
-    @apply glass transition-all duration-300;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
   }
 
   .glass-hover:hover {
-    background: rgba(37, 37, 64, 0.8);
-    border-color: rgba(99, 102, 241, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(99, 102, 241, 0.1);
+    border-color: #D1D5DB;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
   }
 
-  /* Score bar */
+  /* ── Score bar ───────────────────────────────────────────────────────── */
   .score-bar {
-    @apply h-2 rounded-full overflow-hidden bg-surface-600;
+    @apply h-1.5 rounded-full overflow-hidden bg-gray-200;
   }
 
   .score-bar-fill {
     @apply h-full rounded-full transition-all duration-700 ease-out;
   }
 
-  /* Gradient text */
+  /* ── Heading accent — replaces gradient text ─────────────────────────── */
   .gradient-text {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(135deg, #818ef8 0%, #a78bfa 50%, #c084fc 100%);
+    color: #1E3A5F;
+    font-weight: 700;
   }
 
-  /* Glow effects */
-  .glow-brand {
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.3), 0 0 40px rgba(99, 102, 241, 0.1);
-  }
+  /* ── Glow effects — neutralised ──────────────────────────────────────── */
+  .glow-brand  { box-shadow: none; }
+  .glow-green  { box-shadow: none; }
+  .glow-yellow { box-shadow: none; }
 
-  .glow-green {
-    box-shadow: 0 0 15px rgba(34, 197, 94, 0.25);
-  }
-
-  .glow-yellow {
-    box-shadow: 0 0 15px rgba(234, 179, 8, 0.2);
-  }
-
-  /* Badge styles */
+  /* ── Badges ──────────────────────────────────────────────────────────── */
   .badge {
     @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
 
   .badge-highly-relevant {
-    @apply badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/25;
+    @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200;
   }
 
   .badge-potentially-relevant {
-    @apply badge bg-amber-500/15 text-amber-400 border border-amber-500/25;
+    @apply badge bg-amber-50 text-amber-700 border border-amber-200;
   }
 
   .badge-escalated {
-    @apply badge bg-rose-500/15 text-rose-400 border border-rose-500/25;
+    @apply badge bg-rose-50 text-rose-700 border border-rose-200;
   }
 
   .badge-gap {
-    @apply badge bg-violet-500/15 text-violet-400 border border-violet-500/25;
+    @apply badge bg-violet-50 text-violet-700 border border-violet-200;
   }
 
   .badge-trend {
-    @apply badge bg-cyan-500/15 text-cyan-400 border border-cyan-500/25;
+    @apply badge bg-cyan-50 text-cyan-700 border border-cyan-200;
   }
 
   .badge-hot {
-    @apply badge bg-orange-500/15 text-orange-400 border border-orange-500/25;
+    @apply badge bg-orange-50 text-orange-700 border border-orange-200;
   }
 
-  /* Shimmer skeleton */
+  /* ── Skeleton shimmer ────────────────────────────────────────────────── */
   .skeleton {
     @apply rounded-lg animate-shimmer;
     background: linear-gradient(
       90deg,
-      rgba(255,255,255,0.03) 25%,
-      rgba(255,255,255,0.07) 50%,
-      rgba(255,255,255,0.03) 75%
+      #F3F4F6 25%,
+      #E9EAEC 50%,
+      #F3F4F6 75%
     );
     background-size: 1000px 100%;
   }
 
-  /* Sidebar nav item */
+  /* ── Sidebar nav item ────────────────────────────────────────────────── */
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400
-           transition-all duration-200 cursor-pointer;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600
+           transition-all duration-150 cursor-pointer;
   }
 
   .nav-item:hover {
-    @apply text-gray-100 bg-surface-600;
+    @apply text-gray-900 bg-gray-100;
   }
 
   .nav-item.active {
-    @apply text-brand-300 bg-brand-600/20;
-    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.3);
+    @apply text-brand-600 bg-brand-50;
+    border-left: 2px solid #1E3A5F;
+    padding-left: calc(0.75rem - 2px);
+    font-weight: 600;
   }
 
-  /* Button styles */
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-           bg-brand-600 text-white transition-all duration-200 cursor-pointer;
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold
+           bg-brand-600 text-white transition-all duration-150 cursor-pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
   }
 
   .btn-primary:hover {
-    @apply bg-brand-500 shadow-lg glow-brand;
-    transform: translateY(-1px);
+    @apply bg-brand-700;
+    box-shadow: 0 2px 6px rgba(30, 58, 95, 0.2);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium
-           bg-surface-600 text-gray-300 border border-white/10 transition-all duration-200 cursor-pointer;
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-white text-gray-700 border border-gray-200 transition-all duration-150 cursor-pointer;
   }
 
   .btn-secondary:hover {
-    @apply bg-surface-500 text-white border-white/20;
+    @apply bg-gray-50 text-gray-900 border-gray-300;
   }
 
-  /* Input styles */
+  /* ── Inputs ──────────────────────────────────────────────────────────── */
   .input-field {
-    @apply w-full px-4 py-2.5 rounded-xl bg-surface-700 border border-white/10
-           text-gray-100 placeholder-gray-500 text-sm
-           focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500/50
-           transition-all duration-200;
+    @apply w-full px-4 py-2.5 rounded-lg bg-white border border-gray-200
+           text-gray-900 placeholder-gray-400 text-sm
+           focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15
+           transition-all duration-150;
   }
 
-  /* Tag input chip */
+  /* ── Tag chip ────────────────────────────────────────────────────────── */
   .chip {
     @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium
-           bg-brand-600/20 text-brand-300 border border-brand-500/30;
+           bg-brand-50 text-brand-600 border border-brand-200;
   }
 }
 

@@ -47,8 +47,15 @@ PIPELINE_STEPS = [
 ]
 TOTAL_STEPS = len(PIPELINE_STEPS)
 
-# Max papers to fetch per user profile (kept small for speed)
-PAPERS_PER_PROFILE = 20
+# Max papers to fetch per user profile
+# Increased from 20 → 50 to give the scoring step a large enough candidate pool
+PAPERS_PER_PROFILE = 50
+
+# Fetch window in days — 7 days ensures enough papers even on low-submission days
+FETCH_DAYS_BACK = 7
+
+# LLM model used across all pipeline tasks
+LLM_MODEL = "openai/gpt-oss-20b"
 
 
 def _now_iso() -> str:
@@ -64,11 +71,11 @@ def _run_pipeline(profiles: List[Dict], run_id: str, db, log_step_fn) -> Dict[st
 
     llm = ChatGroq(
         api_key=settings.groq_api_key,
-        model_name="llama-3.1-8b-instant",
+        model_name=LLM_MODEL,
         temperature=0.1,
     )
 
-    # ── Step 2: Fetch papers (one LLM-generated query per profile) ─────────────
+    # ── Step 2: Fetch papers (LLM-generated queries per profile) ───────────────
     log_step_fn(2, PIPELINE_STEPS[1])
     total_fetch = {
         "total_fetched": 0, "arxiv_count": 0,
@@ -77,23 +84,33 @@ def _run_pipeline(profiles: List[Dict], run_id: str, db, log_step_fn) -> Dict[st
 
     for profile in profiles:
         profile_id = profile["id"]
-        interests  = profile.get("research_interests") or []
-        keywords   = profile.get("keywords") or []
+        interests  = [i for i in (profile.get("research_interests") or []) if i]
+        keywords   = [k for k in (profile.get("keywords") or []) if k]
+        excluded   = [e for e in (profile.get("excluded_topics") or []) if e]
 
-        query_terms = ["machine learning"]
-        categories  = ["cs.LG"]
+        # Defaults: used if LLM query generation fails
+        query_terms = ["large language model fine-tuning"]
+        categories  = ["cs.LG", "cs.AI", "cs.CL"]
+
         if interests or keywords:
             try:
                 search_prompt = GENERATE_SEARCH_QUERY_PROMPT.format(
-                    interests=", ".join(interests) if interests else "None",
-                    keywords=", ".join(keywords)  if keywords  else "None",
+                    interests="\n".join(f"- {i}" for i in interests) if interests else "Not specified",
+                    keywords=", ".join(keywords) if keywords else "None",
+                    excluded=", ".join(excluded) if excluded else "None",
                 )
                 resp     = llm.invoke([HumanMessage(content=search_prompt)])
-                content  = resp.content
+                content  = resp.content.strip()
+                # Strip any markdown fences the model may add
+                if "```json" in content:
+                    content = content.split("```json")[1].split("```")[0].strip()
+                elif "```" in content:
+                    content = content.split("```")[1].split("```")[0].strip()
                 json_str = content[content.find("{"):content.rfind("}") + 1]
                 data     = json.loads(json_str)
-                query_terms = data.get("query_terms", query_terms)[:3]
-                categories  = data.get("categories",  categories)[:3]
+                query_terms = data.get("query_terms", query_terms)[:5]
+                categories  = data.get("categories",  categories)[:5]
+                logger.info(f"[Orchestrator] Generated queries for {profile_id[:8]}: {query_terms}")
             except Exception as e:
                 logger.warning(f"[Orchestrator] Search query LLM error for {profile_id}: {e}")
 
@@ -102,6 +119,7 @@ def _run_pipeline(profiles: List[Dict], run_id: str, db, log_step_fn) -> Dict[st
             query_terms=query_terms,
             categories=categories,
             max_papers=PAPERS_PER_PROFILE,
+            days_back=FETCH_DAYS_BACK,
         )
         for k in total_fetch:
             total_fetch[k] += fetch_result.get(k, 0)
@@ -186,7 +204,7 @@ def _run_pipeline(profiles: List[Dict], run_id: str, db, log_step_fn) -> Dict[st
             try:
                 digest_llm = ChatGroq(
                     api_key=settings.groq_api_key,
-                    model_name="llama-3.1-8b-instant",
+                    model_name=LLM_MODEL,
                     temperature=0.4,
                 )
                 digest_resp = digest_llm.invoke([HumanMessage(content=digest_prompt)])

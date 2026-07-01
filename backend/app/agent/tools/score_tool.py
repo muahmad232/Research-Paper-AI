@@ -26,7 +26,7 @@ W_KEYWORD = 0.20
 W_RECENCY = 0.15
 
 # Cosine threshold below which we skip the LLM call (saves API cost)
-LLM_COSINE_THRESHOLD = 35.0
+LLM_COSINE_THRESHOLD = 25.0
 
 # Classification thresholds (lowered so LLM signal is reflected)
 HIGHLY_RELEVANT_THRESHOLD     = 68
@@ -82,11 +82,11 @@ def _llm_score_batch(
     Falls back to 50.0 on any error (neutral score, won't inflate or suppress).
     """
     papers_list = "\n".join(
-        f"[{i}] {p.get('title', '')} — {(p.get('abstract') or '')[:250]}"
+        f"[{i}] {p.get('title', '')} — {(p.get('abstract') or '')[:500]}"
         for i, p in enumerate(papers)
     )
     prompt = LLM_RELEVANCE_SCORE_PROMPT.format(
-        profile_text=profile_text[:500],
+        profile_text=profile_text,   # full profile text, no truncation
         papers_list=papers_list,
     )
     try:
@@ -125,9 +125,9 @@ def run_score_tool(profile_id: str) -> Dict[str, Any]:
     if not profile:
         return {"error": "Profile not found"}
 
-    interests = profile.get("research_interests") or []
-    keywords  = profile.get("keywords") or []
-    excluded  = profile.get("excluded_topics") or []
+    interests = [i for i in (profile.get("research_interests") or []) if i]
+    keywords  = [k for k in (profile.get("keywords") or []) if k]
+    excluded  = [e for e in (profile.get("excluded_topics") or []) if e]
 
     # Build profile text for embedding + LLM prompt
     profile_text = " ".join(interests + keywords)
@@ -146,14 +146,16 @@ def run_score_tool(profile_id: str) -> Dict[str, Any]:
     )
     already_scored_ids = {r["paper_id"] for r in (existing_recs_resp.data or [])}
 
-    cutoff_date = (date.today() - timedelta(days=2)).isoformat()
+    # Fetch window is 7 days, so 14 days is safe. Use published_at so papers fetched
+    # previously for other users are still picked up for this user.
+    cutoff_date = (date.today() - timedelta(days=14)).isoformat()
 
-    # Load recently fetched papers that have embeddings
+    # Load recently published papers that have embeddings
     papers_resp = (
         db.table("papers")
         .select("id, title, abstract, categories, published_at, embedding")
         .not_.is_("embedding", "null")
-        .gte("fetched_at", cutoff_date)
+        .gte("published_at", cutoff_date)
         .limit(200)
         .execute()
     )
@@ -205,9 +207,9 @@ def run_score_tool(profile_id: str) -> Dict[str, Any]:
     # ── Step 2: LLM scoring — only for papers above cosine threshold ──────────
     llm = ChatGroq(
         api_key=settings.groq_api_key,
-        model_name="llama-3.1-8b-instant",
+        model_name="openai/gpt-oss-20b",
         temperature=0.1,
-        max_tokens=512,
+        max_tokens=1024,
     )
 
     # Separate candidates (above threshold) from clear rejects

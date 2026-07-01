@@ -10,14 +10,14 @@ import toast from 'react-hot-toast'
 function EscalationCard({ esc, onDecide }) {
   const paper = esc.papers || {}
   return (
-    <div className="glass rounded-2xl p-6 animate-slide-in space-y-4">
+    <div className="bg-white border border-gray-200 rounded-xl p-6 animate-slide-in space-y-4 hover:border-gray-300 hover:shadow-sm transition-all">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <span className="badge-escalated"><AlertTriangle size={10} /> Needs Review</span>
             <span className="text-xs text-gray-500">Score: {Math.round(esc.final_score ?? 0)}/100</span>
           </div>
-          <h3 className="text-sm font-semibold text-white leading-snug">{paper.title}</h3>
+          <h3 className="text-sm font-semibold text-gray-900 leading-snug">{paper.title}</h3>
         </div>
         {paper.url && (
           <a href={paper.url} target="_blank" rel="noopener noreferrer" className="btn-secondary px-2.5 py-2 shrink-0">
@@ -26,7 +26,7 @@ function EscalationCard({ esc, onDecide }) {
         )}
       </div>
       <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">{paper.abstract}</p>
-      <div className="flex gap-4 text-xs text-gray-600">
+      <div className="flex gap-4 text-xs text-gray-400">
         {paper.authors?.length > 0 && (
           <div className="flex items-center gap-1"><Users size={11} />{paper.authors.slice(0, 2).join(', ')}</div>
         )}
@@ -34,12 +34,12 @@ function EscalationCard({ esc, onDecide }) {
           <div className="flex items-center gap-1"><Calendar size={11} />{paper.published_at}</div>
         )}
       </div>
-      <div className="glass rounded-xl p-3 space-y-2">
-        <p className="text-xs font-semibold text-gray-400">Why escalated?</p>
+      <div className="bg-gray-50 border border-gray-100 rounded-lg p-3 space-y-2">
+        <p className="text-xs font-semibold text-gray-600">Why escalated?</p>
         <ScoreBar score={esc.semantic_score ?? 0} label="Semantic Similarity" />
         <ScoreBar score={esc.keyword_score ?? 0} label="Keyword Match" />
         <ScoreBar score={esc.final_score ?? 0} label="Final Score" />
-        <p className="text-[10px] text-gray-600 pt-1">
+        <p className="text-[10px] text-gray-400 pt-1">
           {(esc.semantic_score ?? 0) >= 70 && (esc.keyword_score ?? 0) <= 30
             ? '⚠ High semantic similarity but low keyword match — conflicting signals'
             : '⚠ Score in uncertain range (50–70) — needs human judgment'}
@@ -47,11 +47,11 @@ function EscalationCard({ esc, onDecide }) {
       </div>
       <div className="flex gap-3">
         <button onClick={() => onDecide(esc.id, 'accept')}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 transition-all">
+          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 transition-all">
           <CheckCircle size={15} /> Accept
         </button>
         <button onClick={() => onDecide(esc.id, 'reject')}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:bg-rose-600/30 transition-all">
+          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all">
           <XCircle size={15} /> Reject
         </button>
       </div>
@@ -66,7 +66,7 @@ export default function Escalations() {
     mutationFn: ({ id, decision }) => escalationsApi.decide(id, decision),
     onSuccess: (_, { decision }) => {
       toast.success(`Paper ${decision === 'accept' ? 'accepted ✓' : 'rejected ✗'}`, {
-        style: { background: '#1e1e35', color: '#fff', border: '1px solid rgba(99,102,241,0.3)' },
+        style: { background: '#ffffff', color: '#1F2937', border: '1px solid #E5E7EB' },
       })
       queryClient.invalidateQueries({ queryKey: ['escalations'] })
     },

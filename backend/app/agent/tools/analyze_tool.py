@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def _get_llm():
     return ChatGroq(
         api_key=settings.groq_api_key,
-        model_name="llama-3.1-8b-instant",
+        model_name="openai/gpt-oss-20b",
         temperature=0.1,
         max_tokens=1024,
     )
